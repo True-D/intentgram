@@ -40,12 +40,14 @@ function renderAccounts() {
   $('acctNote').textContent = known
     ? (entries.length > rows.length ? `${entries.length - rows.length} suggested or sponsored accounts are hidden.` : '')
     : 'Instagram didn\'t say which accounts you follow, so all non-ad accounts are shown.';
-  const options = [...C.NAMES, C.OTHER];
+  const options = [...data.topics.map((t) => t.name), C.OTHER];
   $('acctRows').innerHTML = rows.map(([author, a]) => {
+    const mix = Object.entries(a.mix).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([t, n]) => `${t} ${n}`).join(', ');
     const why = data.overrides[author] ? 'You chose this'
+      : mix ? `Posts sorted by AI: ${mix}`
       : a.ai ? 'On-device AI'
       : Object.entries(a.scores).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([t, n]) => `${t} ${n}`).join(', ') || 'No topic words found';
-    const sel = `<select data-author="${esc(author)}"><option value="">Auto: ${esc(a.ai || a.auto)}</option>` +
+    const sel = `<select data-author="${esc(author)}"><option value="">Auto: ${esc(data.overrides[author] ? (a.ai || a.auto) : a.topic)}</option>` +
       options.map((o) => `<option${data.overrides[author] === o ? ' selected' : ''}>${esc(o)}</option>`).join('') + '</select>';
     return `<tr><td><a href="viewer.html#account=${encodeURIComponent(author)}">@${esc(author)}</a></td><td>${a.posts.length}</td><td>${sel}</td><td class="muted">${esc(why)}</td></tr>`;
   }).join('') || '<tr><td colspan="4" class="muted">No accounts yet.</td></tr>';
@@ -59,9 +61,44 @@ async function renderUsage() {
   $('usage').textContent = `${data.all.length} posts kept · ${saved} ★ saved · ${keys.length} images saved${mb ? ' · ' + mb : ''}`;
 }
 
+// ---- Topics ----
+function renderTopics() {
+  $('topicCount').textContent = `(${data.topics.length})`;
+  $('topicRows').innerHTML = data.topics.map((t) => topicRow(t.name, t.hint, t.name)).join('');
+}
+const topicRow = (name, hint, orig = '') => `<tr data-orig="${esc(orig)}"><td><input class="tname" value="${esc(name)}"></td>` +
+  `<td><input class="thint" value="${esc(hint)}"></td><td><button class="plain tdel">Remove</button></td></tr>`;
+
+// Saves the topic list. Renamed topics keep your choices; removed ones drop them.
+async function saveTopics(list) {
+  const rows = list || [...$('topicRows').querySelectorAll('tr')].map((tr) => ({
+    orig: tr.dataset.orig, name: tr.querySelector('.tname').value.trim(), hint: tr.querySelector('.thint').value.trim(),
+  })).filter((t) => t.name);
+  const names = rows.map((t) => t.name.toLowerCase());
+  if (!rows.length) return ($('topicStatus').textContent = 'Keep at least one topic.');
+  if (names.includes(C.OTHER.toLowerCase())) return ($('topicStatus').textContent = '"Other" is always there; pick a different name.');
+  if (new Set(names).size !== names.length) return ($('topicStatus').textContent = 'Two topics have the same name.');
+  const rename = new Map(rows.filter((t) => t.orig).map((t) => [t.orig, t.name]));
+  const keep = new Set(rows.map((t) => t.name));
+  const fix = (map) => {
+    for (const [k, v] of Object.entries(map)) {
+      const to = rename.has(v) ? rename.get(v) : keep.has(v) || v === C.OTHER ? v : null;
+      if (to) map[k] = to; else delete map[k];
+    }
+    return map;
+  };
+  await chrome.storage.local.set({
+    topics: rows.map((t) => ({ name: t.name, hint: t.hint || t.name })),
+    accountTopics: fix(data.overrides), postTopics: fix(data.postTopics), aiPostTopics: fix(data.aiPostTopics), aiPostGuesses: fix(data.aiPostGuesses),
+  });
+  $('topicStatus').textContent = 'Saved. Open the feed to re-sort.';
+  render();
+}
+
 async function render() {
   data = await loadData();
   accounts = computeAccounts(data);
+  renderTopics();
   renderAccounts();
   renderStats();
   renderUsage();
@@ -109,6 +146,16 @@ async function setupAi() {
   const s = await IntentgramStore.settings();
   $('keepDays').value = String(s.keepDays || 0);
   $('saveImages').checked = !!s.saveImages;
+  $('aiSort').checked = !!s.aiSort;
+  $('aiSort').addEventListener('change', (e) => saveSettings({ aiSort: e.target.checked }));
+  $('topicAdd').onclick = () => $('topicRows').insertAdjacentHTML('beforeend', topicRow('', ''));
+  $('topicRows').addEventListener('click', (e) => { if (e.target.closest('.tdel')) e.target.closest('tr').remove(); });
+  $('topicSave').onclick = () => saveTopics();
+  $('topicReset').onclick = () => {
+    if (confirm('Go back to the default topics? Your choices for topics that no longer exist are dropped.')) {
+      saveTopics(IntentgramAI.DEFAULT_TOPICS.map((t) => ({ ...t, orig: data.topics.some((x) => x.name === t.name) ? t.name : '' })));
+    }
+  };
   await render();
   $('keepDays').addEventListener('change', (e) => {
     const days = +e.target.value;

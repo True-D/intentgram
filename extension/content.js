@@ -3,6 +3,7 @@
 (() => {
   // Storage is written only by the background worker, so tabs never overwrite each other.
   function savePosts(posts, source) {
+    IntentgramAutoScroll.onPosts(posts);
     if (posts.length) chrome.runtime.sendMessage({ type: 'posts', posts, source }).catch(() => {});
   }
 
@@ -11,7 +12,9 @@
   }
 
   window.addEventListener('message', (e) => {
-    if (e.source !== window || !e.data || !e.data.__intentgram) return;
+    if (e.source !== window || !e.data) return;
+    if (e.data.__intentgramBlocked) { IntentgramAutoScroll.blocked(e.data.why); return; }
+    if (!e.data.__intentgram) return;
     let path = e.data.url;
     try { path = new URL(e.data.url, location.href).pathname; } catch (_) {}
     savePosts(IntentgramParser.extractFromText(e.data.text), path);

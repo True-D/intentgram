@@ -1,4 +1,4 @@
-# Intentgram — Chrome extension prototype (v0.5.3)
+# Intentgram — Chrome extension prototype (v0.6.0)
 
 Intentgram lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -9,31 +9,62 @@ It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../fe
 - **Capture.** It reads the feed data instagram.com already downloads for itself: the first batch built into the page, plus each new batch as you scroll. It makes no extra requests to Instagram.
 - **Storage.** Posts, settings and saved images stay in the extension's storage on this computer.
 - **What leaves your computer.** Only place lookups (see Place search) go to Photon, a free OpenStreetMap service. They send map coordinates and the place you type, never posts or account names.
-- **Capturing needs scrolling.** It only sees posts Instagram has loaded, so scroll your home feed to collect more.
+- **Downloads.** With AI sorting on, the AI models download once from Hugging Face. Nothing about your posts is sent; the models run on this computer.
+- **Capturing needs scrolling.** It only sees posts Instagram has loaded, so scroll your home feed to collect more, or let auto-scroll do it (see Auto-scroll).
 
 ## Install
 
-1. Unzip `intentgram-feed-probe.zip`.
+1. Download or clone this repository.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode** (top right).
-3. Click **Load unpacked** and select the unzipped folder.
+3. Click **Load unpacked** and select the `extension` folder.
 4. Pin it: click the puzzle-piece icon, then pin **Intentgram Feed Probe**.
 
-**Updating:** unzip the new version over the old folder, then click the reload icon on the extension in `chrome://extensions`. If a version adds new permissions, remove the extension and load it again instead.
+**Updating:** get the new files (for example with `git pull`), then click the reload icon on the extension in `chrome://extensions`. If a version adds new permissions, remove the extension and load it again instead.
 
 ## Using it
 
 1. Open https://www.instagram.com/ while logged in and scroll your home feed. The badge on the icon counts captured posts.
 2. Click the icon, then **Open collected posts** to open the feed page.
-3. Click **Manage** (top right of the feed page, or in the icon menu) for accounts, saving options and test numbers.
+3. To skip the scrolling, click the icon, then **Auto-scroll: collect the last 7 days** (see Auto-scroll).
+4. Click **Manage** (top right of the feed page, or in the icon menu) for accounts, saving options and test numbers.
+
+## Auto-scroll
+
+**Auto-scroll: collect the last 7 days** (in the icon menu) scrolls your home feed for you until it has collected the past week.
+
+- **Where it runs.** In your own Instagram tab, where you're already logged in. It reuses the current tab if it's Instagram; otherwise it opens the home feed in a new tab. It doesn't use a hidden browser, a separate login or any extra requests to Instagram.
+- **Pace.** It scrolls one screen at a time and waits a few seconds between screens, sometimes longer, like someone reading.
+- **Progress.** A purple box in the corner of the Instagram page shows how many new posts it has captured and how far back it has reached. Click **Stop** there to stop it.
+- **It pauses** while the tab is in the background and continues when you come back to it.
+
+It stops by itself when:
+- 12 posts in a row from accounts you follow are older than 7 days (done)
+- only suggested posts are left, because you're all caught up (done)
+- you scroll, click or type on the page (you take over)
+- Instagram limits requests or asks you to confirm your account, which can mean it suspects automation. Wait a while before running it again.
+- the feed stops loading, or after 15 minutes or 800 new posts
+
+The icon menu shows the result of the last run.
+
+**Use it sparingly.** Instagram's terms don't allow automated collection, even of your own feed. Reading pace and the safety stops keep it close to normal browsing, but they can't guarantee Instagram won't notice. About once a day is plenty for a week of posts.
 
 ## Feed page
 
+### Following, Suggested, Ads
+
+Tabs at the top choose which posts the whole page shows, each with a count:
+- **Following** (default): posts from accounts you follow
+- **Suggested**: posts Instagram added from accounts you don't follow
+- **Ads**: sponsored posts
+- **All**: everything captured, matching the number in the icon menu
+
+Categories and their counts follow the selected tab.
+
 ### Categories
 
-- Each account gets one category, and all its posts appear under it. You can change an account's category in Manage.
+- Each post gets a category (see How categories are chosen). Change it with the menu on the post's card, or set a whole account's category in Manage.
 - **Events** lists posts that announce an event (see Events).
 - **★ Saved** lists the posts you saved.
-- Category counts follow the Source filter, so with the default they count only followed content.
 
 ### Filters, in order
 
@@ -43,31 +74,43 @@ It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../fe
 | **Time** | When the post was published: Today, Yesterday, Last 7 days, or a Custom date range |
 | **Place** | Any area, like "Taiwan", "Taipei", "Xinyi" or "Kyoto" (see Place search) |
 | **Keywords** | Text in the caption or the account name |
-| **Source** | **Followed content** (default), All sources, Suggested, or Ads |
 | **Account** | One account's posts. Clicking an @name on a post does the same. |
 
-All filters combine. For example: Events + Last 7 days + Taipei.
+All filters combine with the tab and category. For example: Following + Events + Last 7 days + Taipei.
 
 ### Post cards
 
-- Each card shows the image, account, category and type, plus a summary box if the post is an event.
+- Each card shows the image, account, category menu and type, plus a summary box if the post is an event. Suggested posts and ads carry a "Suggested" or "Ad" label.
 - It also shows the caption, the tagged place and when the post was published.
 - **Open on Instagram** goes to the original post.
 - **★** saves the post forever. Click it again to unsave.
 
 ## How categories are chosen
 
-1. For each account, the extension combines the text of all its captured posts: captions, hashtags, Instagram's image description, the place name and the username.
-2. It counts topic words for each category, in English and Chinese. For example, Photography counts photography, photographer, photoshoot, camera, lens, portrait, 35mm, 攝影, 相機 and more. Longer words that start with a topic word also count, like "photographers".
-3. The account goes to the category with the highest score. If no topic words appear, it goes to **Other**. Manage shows the scores in the "Why" column.
+Each post gets its own category, so an account that posts food, travel and its dog can appear in all three.
 
-The boilerplate at the start of Instagram's image descriptions ("Photo by … on …", "May be an image of") is ignored, so it doesn't count toward any category.
+### On-device AI sorting (recommended)
 
-**Better sorting with AI:** if Chrome's built-in on-device AI is available on your computer, Manage shows a **Sort accounts and read events with Chrome's on-device AI** button. It reads the posts instead of counting words, runs entirely on your computer and costs nothing. The first run may need to download Chrome's model.
+Turn it on with **Turn on** above the categories on the feed page, or in **Manage → Topics**. The first time, it downloads two AI models, about 270 MB, which Chrome then keeps. Everything runs on this computer; no posts, images or captions are sent anywhere.
 
-**Fixing a category:** pick a different one in Manage. Your choice always wins over the automatic one.
+For each post it combines three things:
+1. **The picture.** CLIP, an image model, compares the picture with each topic's description.
+2. **The caption.** A multilingual text model (E5) compares the caption, Instagram's image description and the place name with each topic's description, in English, Chinese or other languages.
+3. **Your corrections.** Change a post's category with the menu on its card. Posts that look or read similarly, from any account, lean toward the category you picked. Setting an account's category in Manage teaches it the same way, with every post of that account.
 
-Categories: Wildlife, Pets, Nature, Travel, Dance, Music, Architecture, Food, Fashion, Fitness, Sports, Art, Photography, Tech, Humor, News, Other.
+When it isn't sure, a post goes to its account's usual topic if the account mostly posts about one thing, otherwise to its best guess.
+
+### Topics
+
+**Manage → Topics** lists the categories. Add, rename or remove topics, and edit their descriptions. The AI matches each post against the topic's name and every phrase in its description, so list what the posts show or talk about, in any language, separated by commas. For example: `Birding` with `birds, bird watching, binoculars, 賞鳥, 鳥類`. Renaming a topic keeps your choices; removing one drops them. **Other** is always there.
+
+### Without AI sorting
+
+Without it, each account gets one category from counting topic words in all its posts' text, in English and Chinese. It also counts longer words that start with a topic word, like "photographers". Instagram's boilerplate at the start of image descriptions ("Photo by … on …") is ignored. Topics you add have no topic words, so they're only used with AI sorting or when you pick them.
+
+**Chrome's built-in AI:** if Chrome's on-device AI is available, Manage also shows a **Sort accounts and read events with Chrome's on-device AI** button. It sorts whole accounts from their captions and reads event details.
+
+**Your choice always wins:** a category you pick for a post beats one picked for its account, which beats the AI.
 
 ## Events
 
@@ -123,7 +166,7 @@ Type any area into the Place filter. Posts tagged anywhere inside it are shown.
 
 - **Desktop Chrome only.** Android (Firefox) and iPhone (Safari) would need a port.
 - **Never tested on real Instagram.** All features were tested with a fake Instagram feed. Instagram's internal data format isn't documented and can change at any time. If capture drops to 0, `parser.js` needs updating.
-- **Who you follow.** "Followed content" relies on Instagram marking which posts come from accounts you follow. If it doesn't, the extension shows all non-ad posts and says so in Manage.
+- **Who you follow.** The Following tab relies on Instagram marking which posts come from accounts you follow. If it doesn't, the extension shows all non-ad posts and says so in Manage.
 - **Rough automatic sorting.** Categories from counting words are approximate. Use the on-device AI button, or fix accounts by hand.
 - **Instagram's Terms.** They restrict automated collection. This prototype only reads what your own browser already received, for your own use. Check the policy (test #9) before sharing it with others.
 

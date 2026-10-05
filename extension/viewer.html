@@ -9,7 +9,9 @@
     <a href="settings.html">Manage</a>
   </header>
   <div class="muted">Read from what Instagram already sent to your browser, and kept on this computer.</div>
+  <div class="tabs" id="source" role="tablist" aria-label="Which posts"></div>
   <h2>Categories</h2>
+  <div class="note muted"><span id="aiNote"></span><button class="act hidden" id="aiOn">Turn on</button></div>
   <div class="chips" id="chips"></div>
   <h2>Posts</h2>
   <div class="bar">
@@ -19,12 +21,11 @@
     <input id="loc" list="placeList" placeholder="Place: Taipei, Taiwan, Kyoto…" autocomplete="off" style="min-width:220px">
     <datalist id="placeList"></datalist>
     <input id="q" placeholder="Keywords">
-    <select id="kind"><option value="followed" selected>Followed content</option><option value="">All sources</option><option value="other">Suggested</option><option value="ad">Ads</option></select>
     <select id="acct"><option value="">All accounts</option></select>
   </div>
   <div class="muted" id="count"></div>
   <div class="muted" id="locNote"></div>
   <div class="grid" id="grid" style="margin-top:10px"></div>
 </main>
-<script src="classifier.js"></script><script src="events.js"></script><script src="geo.js"></script><script src="store.js"></script><script src="shared.js"></script><script src="viewer.js"></script>
+<script src="classifier.js"></script><script src="events.js"></script><script src="geo.js"></script><script src="store.js"></script><script src="ai.js"></script><script src="shared.js"></script><script src="viewer.js"></script>
 </body></html>

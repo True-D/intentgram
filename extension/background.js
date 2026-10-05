@@ -68,6 +68,8 @@ async function cleanup() {
   }
   const orphans = (await S.imageKeys()).filter((id) => !posts[id]);
   if (orphans.length) await S.deleteImages(orphans);
+  const oldVectors = (await S.vectorKeys()).filter((id) => !posts[id] && !String(id).startsWith('__'));
+  if (oldVectors.length) await S.deleteVectors(oldVectors);
   updateBadge();
 }
 
@@ -78,7 +80,51 @@ async function deleteAllExceptStarred() {
   await cleanup();
 }
 
+// Auto-scroll runs in the user's own Instagram tab: reuse the active one if it's
+// Instagram, otherwise open the home feed in a new tab.
+const HOME = 'https://www.instagram.com/';
+function waitForLoad(tabId) {
+  return new Promise((resolve) => {
+    const done = (id, info) => {
+      if (id === tabId && info.status === 'complete') { chrome.tabs.onUpdated.removeListener(done); resolve(); }
+    };
+    chrome.tabs.onUpdated.addListener(done);
+  });
+}
+
+async function startAutoScroll(days) {
+  const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  let tab = active;
+  if (active && (active.url || '').startsWith(HOME)) {
+    if (new URL(active.url).pathname !== '/') {
+      const loaded = waitForLoad(tab.id);
+      await chrome.tabs.update(tab.id, { url: HOME });
+      await loaded;
+    }
+  } else {
+    tab = await chrome.tabs.create({ url: HOME });
+    await waitForLoad(tab.id);
+  }
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: 'autoscroll-start', days });
+  } catch (_) {
+    // Tabs opened before the extension was installed or reloaded don't have its
+    // scripts yet; reloading the tab adds them.
+    const loaded = waitForLoad(tab.id);
+    await chrome.tabs.reload(tab.id);
+    await loaded;
+    await chrome.tabs.sendMessage(tab.id, { type: 'autoscroll-start', days });
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  if (msg.type === 'autoscroll') {
+    startAutoScroll(msg.days).then(() => reply({ ok: true }), (e) => {
+      console.warn('[intentgram] auto-scroll', e);
+      reply({ ok: false, error: (e && e.message) || String(e) });
+    });
+    return true;
+  }
   const jobs = {
     posts: () => savePosts(msg.posts, msg.source),
     screen: () => saveScreenCodes(msg.codes),

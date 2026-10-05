@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Intentgram Feed Probe",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "Feasibility prototype: records the Instagram feed posts you scroll past so you can see what data is available.",
   "permissions": [
     "storage",
@@ -37,17 +37,22 @@
       ],
       "js": [
         "parser.js",
+        "autoscroll.js",
         "content.js"
       ],
       "run_at": "document_start"
     }
   ],
   "host_permissions": [
+    "https://www.instagram.com/*",
     "https://photon.komoot.io/*",
     "https://*.cdninstagram.com/*",
     "https://*.fbcdn.net/*"
   ],
   "options_page": "settings.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",

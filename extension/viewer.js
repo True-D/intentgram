@@ -74,9 +74,30 @@ function isFollowed(p) {
   return !p.isAd;
 }
 
-function sourceMatch(p) {
-  const kind = $('kind').value;
-  return !kind || (kind === 'ad' ? p.isAd : kind === 'followed' ? isFollowed(p) : !isFollowed(p) && !p.isAd);
+// Which posts the whole page shows: from accounts you follow (the default),
+// suggested by Instagram, ads, or all of them.
+let source = 'followed';
+const SOURCES = [
+  ['followed', 'Following', 'Posts from accounts you follow'],
+  ['other', 'Suggested', 'Posts Instagram suggested from accounts you don\'t follow'],
+  ['ad', 'Ads', 'Sponsored posts'],
+  ['', 'All', 'Everything captured'],
+];
+const sourceOf = (p) => (p.isAd ? 'ad' : isFollowed(p) ? 'followed' : 'other');
+const sourceMatch = (p) => !source || sourceOf(p) === source;
+
+function renderSource() {
+  const n = { '': data.all.length, followed: 0, other: 0, ad: 0 };
+  for (const p of data.all) n[sourceOf(p)]++;
+  $('source').innerHTML = SOURCES.map(([k, label, tip]) =>
+    `<button role="tab" aria-selected="${k === source}" class="tab ${k || 'all'}${k === source ? ' on' : ''}" data-k="${k}" title="${esc(tip)}">${label}<b>${n[k]}</b></button>`).join('');
+}
+
+function setSource(k) {
+  source = k;
+  renderSource();
+  renderChips();
+  renderGrid();
 }
 
 function renderGrid() {
@@ -99,10 +120,10 @@ function renderGrid() {
   $('grid').innerHTML = list.map((p) => {
     const on = !!data.starred[p.id];
     const tags = [
-      `<span class="tag topic">${esc(p.topic)}</span>`,
+      topicPicker(p),
       `<span class="tag">${esc(p.type)}${p.slides > 1 ? ' ×' + p.slides : ''}</span>`,
-      p.isAd ? '<span class="tag warn">ad</span>' : '',
-      p.following === false && !p.isAd ? '<span class="tag warn">not followed</span>' : '',
+      sourceOf(p) === 'ad' ? '<span class="tag src ad">Ad</span>' : '',
+      sourceOf(p) === 'other' ? '<span class="tag src other">Suggested</span>' : '',
     ].join('');
     return `<div class="card">
       <div class="media"><img loading="lazy" referrerpolicy="no-referrer" data-id="${esc(p.id)}" alt="${esc(p.altText || '')}"></div>
@@ -119,6 +140,60 @@ function renderGrid() {
   loadImages(list);
 }
 
+// Each post's category is a menu, so it can be corrected right on the card.
+function topicPicker(p) {
+  const mine = !!data.postTopics[p.id];
+  const names = [...data.topics.map((t) => t.name), IntentgramClassifier.OTHER];
+  return `<select class="tag topic${mine ? ' mine' : ''}" data-pick="${esc(p.id)}" title="${mine ? 'You chose this category' : 'Change this post\'s category'}">` +
+    (mine ? '<option value="">Automatic</option>' : '') +
+    names.map((n) => `<option${n === p.topic ? ' selected' : ''}>${esc(n)}</option>`).join('') + '</select>';
+}
+
+// ---- On-device sorting by picture and caption (ai.js) ----
+let aiPrepared = null;
+
+function applyAi() {
+  if (!aiPrepared) return;
+  // Your choices are the examples it learns from: single posts, and every post of an account you set.
+  const labels = new Map();
+  for (const p of data.all) {
+    const t = data.postTopics[p.id] || data.overrides[p.author];
+    if (t) labels.set(p.id, t);
+  }
+  const results = IntentgramAI.assign(data.all, aiPrepared, labels);
+  data.aiPostTopics = {};
+  data.aiPostGuesses = {};
+  for (const [id, r] of results) (r.sure >= IntentgramAI.UNSURE ? data.aiPostTopics : data.aiPostGuesses)[id] = r.topic;
+  chrome.storage.local.set({ aiPostTopics: data.aiPostTopics, aiPostGuesses: data.aiPostGuesses });
+}
+
+async function runAi() {
+  const note = $('aiNote');
+  if (!(await IntentgramStore.settings()).aiSort) {
+    note.textContent = 'Sort each post by its picture and caption with AI that runs on this computer. The first time, it downloads about 270 MB.';
+    $('aiOn').classList.remove('hidden');
+    return;
+  }
+  $('aiOn').classList.add('hidden');
+  const mb = (n) => Math.round(n / 1048576);
+  try {
+    note.textContent = 'Starting the on-device AI…';
+    aiPrepared = await IntentgramAI.prepare(data.all, (done, total, dl) => {
+      note.textContent = !dl ? `Sorting posts by picture and caption: ${done} of ${total}…`
+        : dl.loaded > 1048576 && dl.loaded < dl.total ? `Downloading the AI models, one time only: ${mb(dl.loaded)} MB of about 270 MB…`
+        : 'Loading the AI models…';
+    });
+    applyAi();
+    renderAll();
+    note.textContent = 'Sorted by picture and caption on this computer. Change a post\'s category and similar posts follow.';
+  } catch (e) {
+    console.warn('[intentgram] AI', e);
+    note.textContent = 'On-device sorting didn\'t work: ' + e.message;
+  }
+}
+
+let savedImagesStuck = false;
+
 // Uses the copy saved on this computer when there is one, otherwise Instagram's link.
 async function loadImages(list) {
   const byId = new Map(list.map((p) => [p.id, p]));
@@ -127,7 +202,13 @@ async function loadImages(list) {
     img.addEventListener('error', () => img.replaceWith('Image not saved and its link has expired'), { once: true });
     if (!imageUrls.has(p.id)) {
       let blob = null;
-      try { blob = await IntentgramStore.getImage(p.id); } catch (_) {}
+      // Never let the saved copy hold up the page: if the database doesn't answer
+      // within 2 seconds, use Instagram's links for the rest.
+      if (!savedImagesStuck) {
+        const wait = new Promise((resolve) => setTimeout(resolve, 2000, 'stuck'));
+        try { blob = await Promise.race([IntentgramStore.getImage(p.id), wait]); } catch (_) {}
+        if (blob === 'stuck') { savedImagesStuck = true; blob = null; }
+      }
       if (blob) imageUrls.set(p.id, URL.createObjectURL(blob));
     }
     const src = imageUrls.get(p.id) || p.thumb || p.image;
@@ -207,6 +288,7 @@ function showAccount(author) {
 
 function renderAll() {
   accounts = computeAccounts(data);
+  renderSource();
   renderAccountMenu();
   renderChips();
   renderLocations();
@@ -221,7 +303,7 @@ function renderAll() {
   renderAll();
   $('acct').addEventListener('input', (e) => showAccount(e.target.value));
   for (const id of ['type', 'q', 'when', 'from', 'to']) $(id).addEventListener('input', renderGrid);
-  $('kind').addEventListener('input', () => { renderChips(); renderGrid(); });
+  $('source').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) setSource(b.dataset.k); });
   $('loc').addEventListener('input', onPlaceInput);
   $('chips').addEventListener('click', (e) => {
     const b = e.target.closest('.chip');
@@ -230,6 +312,19 @@ function renderAll() {
     renderChips();
     renderGrid();
   });
+  $('grid').addEventListener('change', async (e) => {
+    const id = e.target.dataset.pick;
+    if (!id) return;
+    if (e.target.value) data.postTopics[id] = e.target.value; else delete data.postTopics[id];
+    await chrome.storage.local.set({ postTopics: data.postTopics });
+    applyAi();
+    renderAll();
+  });
+  $('aiOn').onclick = async () => {
+    const settings = { ...(await IntentgramStore.settings()), aiSort: true };
+    await chrome.storage.local.set({ settings });
+    runAi();
+  };
   $('grid').addEventListener('click', async (e) => {
     const who = e.target.closest('.author');
     if (who) { e.preventDefault(); showAccount(who.dataset.author); return; }
@@ -241,4 +336,5 @@ function renderAll() {
     renderGrid();
   });
   lookUpPlaces();
+  runAi();
 })();
