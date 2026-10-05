@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Intentgram Manage</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body><main>
+  <header><h1>Manage</h1><a href="viewer.html">← Back to feed</a></header>
+
+  <details class="panel" id="acctPanel" open>
+    <summary><h2>Accounts you follow <span class="muted" id="acctCount"></span></h2></summary>
+    <p class="muted">Each account gets one category from the text of all its captured posts (captions, hashtags, Instagram's image descriptions). Its posts use that category. Pick a category to override it; your choice is kept.</p>
+    <div class="row"><button class="act hidden" id="ai">Sort accounts and read events with Chrome's on-device AI</button><span class="muted" id="aiStatus"></span></div>
+    <table><thead><tr><th>Account</th><th>Posts</th><th>Category</th><th>Why</th></tr></thead><tbody id="acctRows"></tbody></table>
+    <div class="muted" id="acctNote"></div>
+  </details>
+
+  <section class="panel">
+    <h2>Saving</h2>
+    <div class="row">
+      <label for="keepDays">Keep captured posts for</label>
+      <select id="keepDays">
+        <option value="7">7 days</option><option value="30">30 days</option><option value="90">3 months</option>
+        <option value="365">1 year</option><option value="0">Forever</option>
+      </select>
+    </div>
+    <div class="muted">Posts you ★ save are always kept. Older posts are removed automatically.</div>
+    <div class="row"><label><input type="checkbox" id="saveImages"> Save images on this computer</label></div>
+    <div class="muted">Instagram's image links stop working after a few days, so without this, older posts lose their pictures. Videos aren't saved, only their cover image.</div>
+    <div class="row muted" id="usage"></div>
+    <div class="row">
+      <button class="plain" id="export">Export posts as JSON</button>
+      <button class="plain danger" id="deleteAll">Delete all posts except ★ saved</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Feasibility numbers</h2>
+    <div class="stats" id="stats"></div>
+  </section>
+</main>
+<script src="classifier.js"></script><script src="events.js"></script><script src="store.js"></script><script src="shared.js"></script><script src="settings.js"></script>
+</body></html>
