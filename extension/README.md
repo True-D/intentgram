@@ -1,4 +1,4 @@
-# Intentgram — Chrome extension prototype (v0.6.4)
+# Intentgram — Chrome extension prototype (v0.6.5)
 
 Intentgram lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -72,9 +72,11 @@ The icon menu shows the result of the last run.
 
 ## Feed page
 
+The top row holds everything you need most: the **Following / Suggested / Ads / All** tabs, a **search** box, a **Filters** button and **Manage**. Categories sit in a sidebar on the left, and the posts fill the rest. On a narrow window the tabs and categories become single rows you scroll sideways.
+
 ### Following, Suggested, Ads
 
-Tabs at the top choose which posts the whole page shows, each with a count:
+The tabs choose which posts the whole page shows, each with a count:
 - **Following** (default): posts from accounts you follow
 - **Suggested**: posts Instagram added from accounts you don't follow
 - **Ads**: sponsored posts
@@ -82,30 +84,31 @@ Tabs at the top choose which posts the whole page shows, each with a count:
 
 Categories and their counts follow the selected tab.
 
-### Categories
+### Categories (sidebar)
 
-- Each post gets a category (see How categories are chosen). Change it with the menu on the post's card, or set a whole account's category in Manage.
-- **Events** lists posts that announce an event (see Events).
-- **★ Saved** lists the posts you saved.
+- **All**, **📅 Events** (posts that announce an event, see Events) and **★ Saved** come first, then your topics, largest first, then **Other**.
+- The 8 largest topics show at first; **Show more** lists the rest.
+- Each post gets a category (see How categories are chosen). Change it in the post's **⋯** menu, or set a whole account's category in Manage.
 
-### Filters, in order
+### Search and filters
+
+**Search** finds text in captions and account names. **Filters** opens a panel:
 
 | Filter | What it does |
 |---|---|
-| **Type** | Photos, carousels, videos or reels |
-| **Time** | When the post was published: Today, Yesterday, Last 7 days, or a Custom date range |
+| **Type** | Any, Photos, Carousels, Videos or Reels |
+| **Posted** | Any time, Today, Yesterday, Last 7 days, or Custom dates |
 | **Place** | Any area, like "Taiwan", "Taipei", "Xinyi" or "Kyoto" (see Place search) |
-| **Keywords** | Text in the caption or the account name |
 | **Account** | One account's posts. Clicking an @name on a post does the same. |
 
-All filters combine with the tab and category. For example: Following + Events + Last 7 days + Taipei.
+Active filters show as pills above the posts, like `Last 7 days ✕`; click one to remove it, or **Clear all** in the panel. The Filters button shows how many are on. Everything combines: for example Following + Events + Last 7 days + Taipei.
 
 ### Post cards
 
-- Each card shows the image, account, category menu and type, plus a summary box if the post is an event. Suggested posts and ads carry a "Suggested" or "Ad" label.
-- It also shows the caption, the tagged place and when the post was published.
-- **Open on Instagram** goes to the original post.
+- Each card shows the picture, the @account, the first 3 lines of the caption and one grey line with the category, how long ago it was posted and the place. Events get a summary box.
+- Suggested posts and ads carry a **Suggested** or **Ad** badge on the picture.
 - **★** saves the post forever. Click it again to unsave.
+- **⋯** has the category menu, the type, the full date and place, and **Open on Instagram**.
 
 ## How categories are chosen
 

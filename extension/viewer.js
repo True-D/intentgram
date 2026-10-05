@@ -31,8 +31,20 @@ function placeLine(p) {
 
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); }
 
+// Type and time are rows of one-click options in the Filters panel.
+const TYPES = [['', 'Any'], ['photo', 'Photos'], ['carousel', 'Carousels'], ['video', 'Videos'], ['reel', 'Reels']];
+const WHENS = [['', 'Any time'], ['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'Last 7 days'], ['custom', 'Custom']];
+const optVal = (id) => $(id).dataset.v;
+function renderOpts() {
+  for (const [id, opts] of [['type', TYPES], ['when', WHENS]]) {
+    $(id).innerHTML = opts.map(([v, label]) =>
+      `<button class="opt${v === optVal(id) ? ' on' : ''}" data-v="${v}" aria-pressed="${v === optVal(id)}">${label}</button>`).join('');
+  }
+  $('customRange').classList.toggle('hidden', optVal('when') !== 'custom');
+}
+
 function timeRange() {
-  const v = $('when').value;
+  const v = optVal('when');
   const today = startOfDay(Date.now());
   if (v === 'today') return [today, Infinity];
   if (v === 'yesterday') return [today - 864e5, today];
@@ -100,13 +112,42 @@ function setSource(k) {
   renderGrid();
 }
 
+// Short times on cards: 3h, 2d, then the date.
+function ago(ms) {
+  if (!ms) return '';
+  const h = (Date.now() - ms) / 36e5;
+  if (h < 1) return 'now';
+  if (h < 24) return Math.floor(h) + 'h';
+  if (h < 24 * 7) return Math.floor(h / 24) + 'd';
+  return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+// Active filters, as removable pills. Also counted on the Filters button.
+function activeFilters() {
+  const out = [];
+  const type = TYPES.find(([v]) => v && v === optVal('type'));
+  if (type) out.push(['type', type[1]]);
+  const when = optVal('when');
+  if (when === 'custom') out.push(['when', [$('from').value, $('to').value].filter(Boolean).join(' – ') || 'Custom dates']);
+  else if (when) out.push(['when', WHENS.find(([v]) => v === when)[1]]);
+  if ($('loc').value.trim()) out.push(['loc', '📍 ' + $('loc').value.trim()]);
+  if (activeAccount) out.push(['acct', '@' + activeAccount]);
+  return out;
+}
+
+function clearFilter(k) {
+  if (k === 'type' || k === 'when') { $(k).dataset.v = ''; renderOpts(); }
+  if (k === 'loc') $('loc').value = '';
+  if (k === 'acct') { showAccount(''); return; }
+  renderGrid();
+}
+
 function renderGrid() {
   const all = data.all;
-  const type = $('type').value;
+  const type = optVal('type');
   const q = $('q').value.trim().toLowerCase();
   const loc = $('loc').value.trim();
   const range = timeRange();
-  $('customRange').classList.toggle('hidden', $('when').value !== 'custom');
   let list = all.filter((p) =>
     (!activeTopic || (activeTopic === '__events' ? !!p.event : activeTopic === '__saved' ? !!data.starred[p.id] : p.topic === activeTopic)) &&
     (!range || (p.takenAt && p.takenAt >= range[0] && p.takenAt < range[1])) &&
@@ -119,24 +160,35 @@ function renderGrid() {
 
   $('grid').innerHTML = list.map((p) => {
     const on = !!data.starred[p.id];
-    const tags = [
-      topicPicker(p),
-      `<span class="tag">${esc(p.type)}${p.slides > 1 ? ' ×' + p.slides : ''}</span>`,
-      sourceOf(p) === 'ad' ? '<span class="tag src ad">Ad</span>' : '',
-      sourceOf(p) === 'other' ? '<span class="tag src other">Suggested</span>' : '',
-    ].join('');
+    const src = sourceOf(p);
+    const badge = src === 'ad' ? '<span class="corner ad">Ad</span>' : src === 'other' ? '<span class="corner other">Suggested</span>' : '';
+    const meta = [esc(p.topic), esc(ago(p.takenAt)), p.location ? esc(p.location) : ''].filter(Boolean).join(' · ');
     return `<div class="card">
-      <div class="media"><img loading="lazy" referrerpolicy="no-referrer" data-id="${esc(p.id)}" alt="${esc(p.altText || '')}"></div>
+      <div class="media">${badge}<img loading="lazy" referrerpolicy="no-referrer" data-id="${esc(p.id)}" alt="${esc(p.altText || '')}"></div>
       <div class="body">
-        <div class="who"><a href="#" class="author" data-author="${esc(p.author)}" title="Show only @${esc(p.author)}"><b>@${esc(p.author)}</b></a> ${tags}<button class="star${on ? ' on' : ''}" data-id="${esc(p.id)}" title="${on ? 'Saved forever. Click to unsave' : 'Save forever'}">${on ? '★' : '☆'}</button></div>
+        <div class="who"><a href="#" class="author" data-author="${esc(p.author)}" title="Show only @${esc(p.author)}">@${esc(p.author)}</a>
+          <button class="star${on ? ' on' : ''}" data-id="${esc(p.id)}" title="${on ? 'Saved forever. Click to unsave' : 'Save forever'}" aria-label="${on ? 'Unsave' : 'Save'}">${on ? '★' : '☆'}</button>
+          <details class="more"><summary title="More" aria-label="More">⋯</summary><div class="menu">
+            <label>Category ${topicPicker(p)}</label>
+            <div class="muted">${esc(p.type)}${p.slides > 1 ? ' · ' + p.slides + ' slides' : ''} · posted ${esc(fmtTime(p.takenAt))}</div>
+            ${p.location ? `<div class="muted">📍 ${esc(placeLine(p))}</div>` : ''}
+            <a href="${esc(p.permalink)}" target="_blank" rel="noopener">Open on Instagram ↗</a>
+          </div></details></div>
         ${eventBox(p.event)}
-        <div class="cap">${esc(p.caption) || '<span class="muted">(no caption)</span>'}</div>
-        ${p.location ? `<div class="meta">📍 ${esc(placeLine(p))}</div>` : ''}
-        <div class="meta">Posted ${esc(fmtTime(p.takenAt))}</div>
-        <a href="${esc(p.permalink)}" target="_blank" rel="noopener">Open on Instagram</a>
+        ${p.caption ? `<div class="cap">${esc(p.caption)}</div>` : ''}
+        <div class="meta">${meta}</div>
       </div></div>`;
-  }).join('') || `<div class="muted">${all.length ? 'No posts match these filters.' : 'No posts yet. Open instagram.com and scroll your home feed.'}</div>`;
-  $('count').textContent = `${list.length} of ${all.length} posts`;
+  }).join('') || `<div class="muted empty">${all.length ? 'No posts match these filters.' : 'No posts yet. Open instagram.com and scroll your home feed.'}</div>`;
+
+  // One quiet status line: what you're looking at, the active filters, the count.
+  const label = activeTopic === '__events' ? 'Events' : activeTopic === '__saved' ? '★ Saved' : activeTopic;
+  const filters = activeFilters();
+  $('pills').innerHTML = filters.map(([k, text]) =>
+    `<button class="pill" data-k="${k}" title="Remove this filter">${esc(text)} <span aria-hidden="true">✕</span></button>`).join('');
+  $('count').innerHTML = (label ? `<b>${esc(label)}</b> · ` : '') + `${list.length} post${list.length === 1 ? '' : 's'}`;
+  $('matchCount').textContent = `${list.length} post${list.length === 1 ? '' : 's'} match`;
+  $('filterCount').textContent = filters.length;
+  $('filterCount').classList.toggle('hidden', !filters.length);
   loadImages(list);
 }
 
@@ -170,7 +222,8 @@ function applyAi() {
 async function runAi() {
   const note = $('aiNote');
   if (!(await IntentgramStore.settings()).aiSort) {
-    note.textContent = 'Sort each post by its picture and caption with AI that runs on this computer. The first time, it downloads about 270 MB.';
+    note.textContent = '· AI sorting is off';
+    note.title = 'Sort each post by its picture and caption with AI that runs on this computer. The first time, it downloads about 270 MB.';
     $('aiOn').classList.remove('hidden');
     return;
   }
@@ -185,7 +238,8 @@ async function runAi() {
     });
     applyAi();
     renderAll();
-    note.textContent = 'Sorted by picture and caption on this computer. Change a post\'s category and similar posts follow.';
+    note.textContent = '· sorted on this computer';
+    note.title = 'Sorted by picture and caption with AI on this computer. Change a post\'s category in its ⋯ menu and similar posts follow.';
   } catch (e) {
     console.warn('[intentgram] AI', e);
     note.textContent = 'On-device sorting didn\'t work: ' + e.message;
@@ -216,7 +270,10 @@ async function loadImages(list) {
   }
 }
 
-// Counts follow the source menu, so "All" matches what the default view shows.
+// Categories in a sidebar: All, Events and Saved, then topics largest first. Only
+// the first few topics show until "Show more"; Other stays last. Counts follow the tab.
+const SHOWN_TOPICS = 8;
+let allTopicsShown = false;
 function renderChips() {
   const base = data.all.filter(sourceMatch);
   const counts = {};
@@ -225,11 +282,18 @@ function renderChips() {
   const saved = base.filter((p) => data.starred[p.id]).length;
   const ordered = Object.entries(counts).sort((a, b) => (a[0] === IntentgramClassifier.OTHER) - (b[0] === IntentgramClassifier.OTHER) || b[1] - a[1]);
   if (activeTopic && !activeTopic.startsWith('__') && !counts[activeTopic]) activeTopic = '';
-  const chip = (t, label, n, cls = '') => `<button class="chip ${cls}${t === activeTopic ? ' on' : ''}" data-t="${esc(t)}">${esc(label)}<b>${n}</b></button>`;
-  $('chips').innerHTML = [chip('', 'All', base.length),
-    events ? chip('__events', 'Events', events, 'special') : '',
-    saved ? chip('__saved', '★ Saved', saved, 'special') : '',
-    ...ordered.map(([t, n]) => chip(t, t, n))].join('');
+  const item = (t, label, n, cls = '') => `<button class="item ${cls}${t === activeTopic ? ' on' : ''}" data-t="${esc(t)}" aria-current="${t === activeTopic}"><span>${esc(label)}</span><b>${n}</b></button>`;
+  const other = ordered.filter(([t]) => t === IntentgramClassifier.OTHER);
+  const topics = ordered.filter(([t]) => t !== IntentgramClassifier.OTHER);
+  const extra = topics.length - SHOWN_TOPICS;
+  $('chips').classList.toggle('expanded', allTopicsShown);
+  $('chips').innerHTML = [item('', 'All', base.length),
+    events ? item('__events', '📅 Events', events) : '',
+    saved ? item('__saved', '★ Saved', saved) : '',
+    topics.length ? '<div class="sep"></div><div class="cap">Topics</div>' : '',
+    ...topics.map(([t, n], i) => item(t, t, n, i >= SHOWN_TOPICS && t !== activeTopic ? 'extra' : '')),
+    extra > 0 ? `<button class="item toggle" id="moreTopics">${allTopicsShown ? 'Show fewer' : `Show ${extra} more`}</button>` : '',
+    other.length ? '<div class="sep"></div>' + item(other[0][0], other[0][0], other[0][1], 'otherTopic') : ''].join('');
 }
 
 // Suggestions: every area that has posts (with counts), then matches from the map.
@@ -283,11 +347,12 @@ function showAccount(author) {
   $('acct').value = author;
   history.replaceState(null, '', author ? '#account=' + encodeURIComponent(author) : location.pathname);
   renderGrid();
-  if (author) window.scrollTo({ top: $('acct').getBoundingClientRect().top + window.scrollY - 20, behavior: 'smooth' });
+  if (author) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderAll() {
   accounts = computeAccounts(data);
+  renderOpts();
   renderSource();
   renderAccountMenu();
   renderChips();
@@ -306,12 +371,34 @@ function renderAll() {
   chrome.storage.onChanged.addListener((c) => { if (c.paused) showPaused(c.paused.newValue); });
   $('resume').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'pause', paused: false }));
   $('acct').addEventListener('input', (e) => showAccount(e.target.value));
-  for (const id of ['type', 'q', 'when', 'from', 'to']) $(id).addEventListener('input', renderGrid);
+  for (const id of ['q', 'from', 'to']) $(id).addEventListener('input', renderGrid);
+  for (const id of ['type', 'when']) $(id).addEventListener('click', (e) => {
+    const b = e.target.closest('.opt');
+    if (!b) return;
+    $(id).dataset.v = b.dataset.v;
+    renderOpts();
+    renderGrid();
+  });
+  $('filtersBtn').addEventListener('click', () => {
+    const open = $('filters').classList.toggle('hidden') === false;
+    $('filtersBtn').setAttribute('aria-expanded', open);
+  });
+  $('clearAll').addEventListener('click', () => {
+    $('type').dataset.v = ''; $('when').dataset.v = ''; $('loc').value = '';
+    renderOpts();
+    showAccount('');
+  });
+  // Close an open ⋯ menu when clicking anywhere else.
+  document.addEventListener('click', (e) => {
+    for (const d of document.querySelectorAll('details.more[open]')) if (!d.contains(e.target)) d.open = false;
+  });
+  $('pills').addEventListener('click', (e) => { const b = e.target.closest('.pill'); if (b) clearFilter(b.dataset.k); });
   $('source').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) setSource(b.dataset.k); });
   $('loc').addEventListener('input', onPlaceInput);
   $('chips').addEventListener('click', (e) => {
-    const b = e.target.closest('.chip');
+    const b = e.target.closest('.item');
     if (!b) return;
+    if (b.id === 'moreTopics') { allTopicsShown = !allTopicsShown; renderChips(); return; }
     activeTopic = b.dataset.t;
     renderChips();
     renderGrid();
