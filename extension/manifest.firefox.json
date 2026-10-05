@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Intently",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "description": "Browse your Instagram feed by topic, place, time and account. Unofficial; not affiliated with Instagram or Meta.",
   "permissions": [
     "storage",

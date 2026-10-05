@@ -7,7 +7,7 @@
   <header class="toolbar">
     <h1>Intently</h1>
     <div class="tabs" id="source" role="tablist" aria-label="Which posts"></div>
-    <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Search captions and accounts" aria-label="Search captions and accounts"></label>
+    <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Search, or type @ for an account" aria-label="Search captions, or type @ to find an account" autocomplete="off"><div class="sugs hidden" id="acctSug" role="listbox"></div></label>
     <button class="plain filt" id="filtersBtn" aria-expanded="false" aria-controls="filters">Filters <b id="filterCount" class="hidden"></b><span aria-hidden="true">▾</span></button>
     <a href="settings.html" class="manage">Manage</a>
   </header>
@@ -17,7 +17,6 @@
     <div><div class="lbl">Posted</div><div class="opts" id="when" data-v=""></div>
       <div id="customRange" class="hidden range"><input type="date" id="from" aria-label="From"> to <input type="date" id="to" aria-label="To"></div></div>
     <div><div class="lbl">Place</div><input id="loc" list="placeList" placeholder="Taipei, Taiwan, Kyoto…" autocomplete="off"><datalist id="placeList"></datalist></div>
-    <div><div class="lbl">Account</div><select id="acct"><option value="">All accounts</option></select></div>
     <div><div class="lbl">Ads</div><label class="check"><input type="checkbox" id="showAds"> Show ads under Suggested and All</label></div>
     <div class="foot"><span class="muted" id="matchCount"></span><button class="link" id="clearAll">Clear all</button></div>
   </section>

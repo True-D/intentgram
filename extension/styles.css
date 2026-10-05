@@ -138,3 +138,10 @@
   .kindq:hover { color:var(--accent); border-color:var(--accent); }
   .check { display:flex; width:fit-content; align-items:center; gap:6px; cursor:pointer; }
   .filters .check input { width:auto; margin:0; }
+  .search { position:relative; }
+  .sugs { position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20; background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:4px; }
+  .sugs.hidden { display:none; }
+  .sug { display:flex; align-items:baseline; gap:8px; width:100%; border:0; background:none; color:var(--fg); font:inherit; text-align:left; padding:7px 10px; border-radius:7px; cursor:pointer; }
+  .sug span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .sug .n { margin-left:auto; flex:none; }
+  .sug.on, .sug:hover { background:var(--bg); }
+  .sugs .none { padding:7px 10px; }

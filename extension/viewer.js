@@ -2,7 +2,8 @@ const G = IntentgramGeo;
 let data = null;
 let accounts = new Map();
 let activeTopic = '';
-let activeAccount = ''; // '' for all accounts  // a category, '__events', '__saved' or '' for all
+let activeAccount = ''; // '' for all accounts
+let accountPrefix = false; // true when activeAccount is a typed "@amy" prefix rather than one picked account
 let remote = [];       // place suggestions from the geocoder for the current text
 const imageUrls = new Map(); // post id -> object URL of the saved image
 
@@ -135,7 +136,7 @@ function activeFilters() {
   if (when === 'custom') out.push(['when', [$('from').value, $('to').value].filter(Boolean).join(' – ') || 'Custom dates']);
   else if (when) out.push(['when', WHENS.find(([v]) => v === when)[1]]);
   if ($('loc').value.trim()) out.push(['loc', '📍 ' + $('loc').value.trim()]);
-  if (activeAccount) out.push(['acct', '@' + activeAccount]);
+  if (activeAccount) out.push(['acct', '@' + activeAccount + (accountPrefix ? '…' : '')]);
   if (showAds) out.push(['ads', 'Ads shown']);
   return out;
 }
@@ -150,14 +151,18 @@ function clearFilter(k) {
 
 function renderGrid() {
   const all = data.all;
-  const q = $('q').value.trim().toLowerCase();
+  const raw = $('q').value.trim().toLowerCase();
+  // "@amy" while typing narrows to accounts starting with "amy"; other text searches captions and names.
+  const typedAt = raw.startsWith('@') ? raw.slice(1) : null;
+  const q = typedAt === null ? raw : '';
   const loc = $('loc').value.trim();
   const range = timeRange();
   let list = all.filter((p) =>
     (!activeTopic || (activeTopic === '__events' ? !!p.event : activeTopic === '__saved' ? !!data.starred[p.id] : p.topic === activeTopic)) &&
     (!range || (p.takenAt && p.takenAt >= range[0] && p.takenAt < range[1])) &&
     (!loc || placeMatch(p, loc)) &&
-    (!activeAccount || p.author === activeAccount) &&
+    (!activeAccount || (accountPrefix ? (p.author || '').toLowerCase().startsWith(activeAccount) : p.author === activeAccount)) &&
+    (!typedAt || (p.author || '').toLowerCase().startsWith(typedAt)) &&
     sourceMatch(p) &&
     (!q || (p.caption + ' ' + p.author).toLowerCase().includes(q)));
   if (activeTopic === '__events') list = [...list].sort(eventOrder);
@@ -187,7 +192,10 @@ function renderGrid() {
         ${p.caption ? `<div class="cap">${esc(p.caption)}</div>` : ''}
         <div class="meta">${meta}</div>
       </div></div>`;
-  }).join('') || `<div class="muted empty">${all.length ? 'No posts match these filters.' : 'No posts yet. Open instagram.com and scroll your home feed.'}</div>`;
+  }).join('') || `<div class="muted empty">${!all.length ? 'No posts yet. Open instagram.com and scroll your home feed.'
+    : activeAccount && !accountPrefix && source && all.some((p) => p.author === activeAccount)
+      ? `@${esc(activeAccount)} has no posts in this tab. <button class="link" id="acctInAll">Show in All</button>`
+      : 'No posts match these filters.'}</div>`;
 
   // One quiet status line: what you're looking at, the active filters, the count.
   const label = activeTopic === '__events' ? 'Events' : activeTopic === '__saved' ? '★ Saved' : activeTopic;
@@ -360,18 +368,44 @@ async function lookUpPlaces() {
   if (n) { await chrome.storage.local.set({ geoCache: data.geoCache }); $('locNote').textContent = ''; renderLocations(); renderGrid(); }
 }
 
-// Accounts menu, most posts first.
-function renderAccountMenu() {
-  const rows = [...accounts.entries()].sort((a, b) => b[1].posts.length - a[1].posts.length || a[0].localeCompare(b[0]));
-  if (activeAccount && !accounts.has(activeAccount)) activeAccount = '';
-  $('acct').innerHTML = '<option value="">All accounts</option>' + rows.map(([a, x]) =>
-    `<option value="${esc(a)}"${a === activeAccount ? ' selected' : ''}>@${esc(a)} (${x.posts.length})</option>`).join('');
+// Typing "@" in the search box suggests accounts from the current tab, matching the
+// username or full name, most posts first. Picking one filters to that account.
+let sugs = [];
+let sugAt = -1;
+function renderSuggestions() {
+  const raw = $('q').value.trim();
+  const box = $('acctSug');
+  if (!raw.startsWith('@')) { box.classList.add('hidden'); sugs = []; return; }
+  const t = raw.slice(1).toLowerCase();
+  const byAuthor = new Map();
+  for (const p of data.all) {
+    if (!p.author || !sourceMatch(p)) continue;
+    const a = byAuthor.get(p.author) || { author: p.author, name: p.authorFullName || '', n: 0 };
+    a.n++;
+    byAuthor.set(p.author, a);
+  }
+  const rank = (a) => (a.author.toLowerCase().startsWith(t) ? 0 : a.author.toLowerCase().includes(t) ? 1 : 2);
+  sugs = [...byAuthor.values()]
+    .filter((a) => !t || a.author.toLowerCase().includes(t) || a.name.toLowerCase().includes(t))
+    .sort((a, b) => rank(a) - rank(b) || b.n - a.n || a.author.localeCompare(b.author)).slice(0, 8);
+  sugAt = Math.min(sugAt, sugs.length - 1);
+  box.innerHTML = sugs.map((a, i) => `<button class="sug${i === sugAt ? ' on' : ''}" role="option" aria-selected="${i === sugAt}" data-author="${esc(a.author)}">` +
+    `<b>@${esc(a.author)}</b><span class="muted">${esc(a.name)}</span><span class="muted n">${a.n}</span></button>`).join('') ||
+    `<div class="muted none">No accounts in this tab match.</div>`;
+  box.classList.remove('hidden');
 }
 
-function showAccount(author) {
-  activeAccount = author;
-  $('acct').value = author;
-  history.replaceState(null, '', author ? '#account=' + encodeURIComponent(author) : location.pathname);
+function pickAccount(author, prefix = false) {
+  $('q').value = '';
+  sugs = []; sugAt = -1;
+  $('acctSug').classList.add('hidden');
+  showAccount(author, prefix);
+}
+
+function showAccount(author, prefix = false) {
+  activeAccount = prefix ? author.toLowerCase() : author;
+  accountPrefix = !!author && prefix;
+  history.replaceState(null, '', author && !prefix ? '#account=' + encodeURIComponent(author) : location.pathname);
   renderGrid();
   if (author) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -380,7 +414,6 @@ function renderAll() {
   accounts = computeAccounts(data);
   renderOpts();
   renderSource();
-  renderAccountMenu();
   renderChips();
   renderLocations();
   renderGrid();
@@ -396,8 +429,32 @@ function renderAll() {
   showPaused((await chrome.storage.local.get('paused')).paused);
   chrome.storage.onChanged.addListener((c) => { if (c.paused) showPaused(c.paused.newValue); });
   $('resume').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'pause', paused: false }));
-  $('acct').addEventListener('input', (e) => showAccount(e.target.value));
-  for (const id of ['q', 'from', 'to']) $(id).addEventListener('input', renderGrid);
+  for (const id of ['from', 'to']) $(id).addEventListener('input', renderGrid);
+  $('q').addEventListener('input', () => { sugAt = -1; renderSuggestions(); renderGrid(); });
+  $('q').addEventListener('focus', renderSuggestions);
+  $('q').addEventListener('keydown', (e) => {
+    const raw = $('q').value.trim();
+    if (!raw.startsWith('@')) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (sugs.length) sugAt = (sugAt + (e.key === 'ArrowDown' ? 1 : sugs.length - 1)) % sugs.length;
+      renderSuggestions();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      // Enter on a highlighted suggestion picks it; otherwise "@amy" means every account starting with "amy".
+      if (sugs[sugAt]) pickAccount(sugs[sugAt].author);
+      else if (raw.length > 1) pickAccount(raw.slice(1), sugs.length !== 1 || sugs[0].author.toLowerCase() !== raw.slice(1).toLowerCase());
+    } else if (e.key === 'Escape') {
+      e.preventDefault(); // keep the text; just close the list
+      $('acctSug').classList.add('hidden');
+    }
+  });
+  // mousedown, so the pick happens before the box loses focus.
+  $('acctSug').addEventListener('mousedown', (e) => {
+    const b = e.target.closest('.sug');
+    if (b) { e.preventDefault(); pickAccount(b.dataset.author); }
+  });
+  $('q').addEventListener('blur', () => $('acctSug').classList.add('hidden'));
   $('showAds').addEventListener('change', (e) => setShowAds(e.target.checked));
   for (const id of ['when']) $(id).addEventListener('click', (e) => {
     const b = e.target.closest('.opt');
@@ -462,6 +519,7 @@ function renderAll() {
       e.stopPropagation();
       return;
     }
+    if (e.target.id === 'acctInAll') { setSource(''); return; }
     const who = e.target.closest('.author');
     if (who) { e.preventDefault(); showAccount(who.dataset.author); return; }
     const b = e.target.closest('.star');

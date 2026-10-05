@@ -1,4 +1,4 @@
-# Intently — Chrome extension prototype (v0.6.7)
+# Intently — Chrome extension prototype (v0.6.8)
 
 Intently lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -105,13 +105,12 @@ In the All tab, creator and brand posts carry a **Creator**, **Brand** or **Crea
 
 ### Search and filters
 
-**Search** finds text in captions and account names. **Filters** opens a panel:
+**Search** finds text in captions and account names. Type **@** to find an account instead: a list of accounts in the current tab appears, matching the username or full name. Use the arrow keys and Enter, or click, to show only that account's posts. Enter without picking one, like `@amy`, shows every account starting with "amy". Clicking an @name on a post does the same. **Filters** opens a panel:
 
 | Filter | What it does |
 |---|---|
 | **Posted** | Any time, Today, Yesterday, Last 7 days, or Custom dates |
 | **Place** | Any area, like "Taiwan", "Taipei", "Xinyi" or "Kyoto" (see Place search) |
-| **Account** | One account's posts. Clicking an @name on a post does the same. |
 | **Ads** | **Show ads** adds sponsored posts to Suggested and All |
 
 Active filters show as pills above the posts, like `Last 7 days ✕`; click one to remove it, or **Clear all** in the panel. The Filters button shows how many are on. Everything combines: for example Friends + Events + Last 7 days + Taipei.
