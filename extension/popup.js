@@ -41,3 +41,12 @@ document.getElementById('auto').onclick = async () => {
   if (r && r.ok) window.close();
   else status.textContent = 'Could not start: ' + ((r && r.error) || 'no answer from the extension. Reload it in chrome://extensions.');
 };
+
+// Firefox may leave site access off until the user allows it; Chrome grants it at install.
+(async () => {
+  const origins = chrome.runtime.getManifest().host_permissions;
+  if (!chrome.permissions || await chrome.permissions.contains({ origins })) return;
+  const b = document.getElementById('grant');
+  b.classList.remove('hidden');
+  b.onclick = async () => { if (await chrome.permissions.request({ origins })) b.classList.add('hidden'); };
+})();

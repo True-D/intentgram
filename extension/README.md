@@ -21,6 +21,17 @@ It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../fe
 
 **Updating:** get the new files (for example with `git pull`), then click the reload icon on the extension in `chrome://extensions`. If a version adds new permissions, remove the extension and load it again instead.
 
+### Firefox and LibreWolf
+
+Firefox 128 or newer, and browsers based on it like LibreWolf, need their own build.
+
+1. In the repository folder, run `./build-firefox.sh`. It creates `dist/firefox` and `intentgram-firefox.xpi`.
+2. To try it, open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `dist/firefox/manifest.json`. A temporary add-on is removed when the browser closes.
+3. To keep it installed in LibreWolf, set `xpinstall.signatures.required` to `false` in `about:config`, then open `about:addons`, click the gear icon, choose **Install Add-on From File** and pick `intentgram-firefox.xpi`. Regular Firefox only installs signed add-ons, which means submitting it to addons.mozilla.org (free).
+4. If the icon menu shows **Allow access to Instagram**, click it. Firefox can leave site access off until you allow it.
+
+Chrome's built-in AI (the older optional sorting) isn't available in Firefox. The on-device CLIP and E5 sorting is.
+
 ## Using it
 
 1. Open https://www.instagram.com/ while logged in and scroll your home feed. The badge on the icon counts captured posts.

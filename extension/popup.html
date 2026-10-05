@@ -6,6 +6,7 @@
   .n { font-size: 28px; font-weight: 600; }
   .muted { color: #6e6e73; font-size: 12px; }
   button { display: block; width: 100%; margin-top: 8px; padding: 8px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fff; cursor: pointer; font: inherit; }
+  .hidden { display: none; }
   button:disabled { opacity: .5; cursor: default; }
   button.paused { background: #fff4e5; border-color: #f0a040; }
   button.primary { background: #6b4fd8; color: #fff; border-color: #6b4fd8; }
@@ -14,6 +15,7 @@
   <h1>Intentgram</h1>
   <div class="n" id="count">0</div>
   <div class="muted" id="sub">posts captured</div>
+  <button class="primary hidden" id="grant">Allow access to Instagram</button>
   <button class="primary" id="open">Open collected posts</button>
   <button id="pause">Pause collecting</button>
   <button id="auto">Auto-scroll: collect the last 7 days</button>

@@ -1,7 +1,8 @@
 // The only writer of captured posts: content scripts send what they find here.
 // Also saves each post's image locally (Instagram image links expire after a few
 // days) and removes posts older than the "keep posts for" setting.
-importScripts('store.js');
+// Chrome loads store.js here; Firefox lists it before this file in manifest.firefox.json.
+if (typeof importScripts === 'function') importScripts('store.js');
 const S = IntentgramStore;
 
 let queue = Promise.resolve();
