@@ -93,7 +93,7 @@ Each account you follow is sorted as a whole, using what Instagram already sends
 2. **The account type** Instagram reports: personal, business or creator. The feed doesn't always include it; opening someone's profile on Instagram does, and Intently remembers it.
 3. **Private accounts** are friends, because creator and business accounts can't be private.
 4. **Hints** for creators and brands: a verified badge, a profile category, ads or paid partnerships. An account that follows you back counts as a friend.
-5. Otherwise it goes under Friends with a small **?** next to its name. Click the **?** to choose.
+5. Otherwise it goes under Creators & brands with a small **?** next to its name. Click the **?** to choose.
 
 In the All tab, creator and brand posts carry a **Creator**, **Brand** or **Creator or brand** badge.
 
