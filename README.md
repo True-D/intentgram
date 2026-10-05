@@ -2,7 +2,7 @@
 
 Browse your Instagram feed by intent: by topic, place, time and account, instead of the algorithm's order.
 
-Intentgram is a Chrome extension prototype. It collects the posts in your Instagram home feed and lets you browse them by topic, separate from the algorithm's order:
+Intentgram is a browser extension prototype for Chrome, Firefox and LibreWolf. It collects the posts in your Instagram home feed and lets you browse them by topic, separate from the algorithm's order:
 
 - **Following, Suggested and Ads tabs** keep posts from accounts you follow apart from what Instagram mixes in.
 - **AI sorting by picture and caption** puts each post in a topic. It runs on your computer and learns from the categories you correct.
@@ -12,9 +12,20 @@ Intentgram is a Chrome extension prototype. It collects the posts in your Instag
 
 The [extension README](extension/README.md) covers installing, using it and how it works.
 
-## Try it
+## Try it in Chrome
 
 1. Download or clone this repository.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode**.
 3. Click **Load unpacked** and select the `extension` folder.
 4. Open instagram.com and scroll your feed, then click the extension icon and choose **Open collected posts**.
+
+## Try it in Firefox or LibreWolf
+
+Needs Firefox 128 or newer.
+
+1. Download or clone this repository, then run `./build-firefox.sh` in its folder. It makes `intentgram-firefox.xpi`.
+2. **LibreWolf, to keep it installed:** type `about:config` in the address bar and accept the warning. Search for `xpinstall.signatures.required` and click the ⇌ toggle so it reads `false`. Then open `about:addons`, choose **Extensions**, click the gear icon, choose **Install Add-on From File…**, pick `intentgram-firefox.xpi` and click **Add**.
+3. **Regular Firefox** ignores that setting and only installs signed add-ons. Load it for one session instead: open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `dist/firefox/manifest.json`. It's removed when Firefox closes.
+4. Open instagram.com. If the extension's icon menu shows **Allow access to Instagram**, click it.
+
+After pulling new changes, run `./build-firefox.sh` again and reinstall the new `.xpi`.

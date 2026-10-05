@@ -27,8 +27,10 @@ Firefox 128 or newer, and browsers based on it like LibreWolf, need their own bu
 
 1. In the repository folder, run `./build-firefox.sh`. It creates `dist/firefox` and `intentgram-firefox.xpi`.
 2. To try it, open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `dist/firefox/manifest.json`. A temporary add-on is removed when the browser closes.
-3. To keep it installed in LibreWolf, set `xpinstall.signatures.required` to `false` in `about:config`, then open `about:addons`, click the gear icon, choose **Install Add-on From File** and pick `intentgram-firefox.xpi`. Regular Firefox only installs signed add-ons, which means submitting it to addons.mozilla.org (free).
+3. To keep it installed in LibreWolf: type `about:config` in the address bar and accept the warning. Search for `xpinstall.signatures.required` and click the ⇌ toggle so it reads `false`. Then open `about:addons`, choose **Extensions**, click the gear icon, choose **Install Add-on From File…**, pick `intentgram-firefox.xpi` and click **Add**. Regular Firefox ignores that setting and only installs signed add-ons, which means submitting it to addons.mozilla.org (free).
 4. If the icon menu shows **Allow access to Instagram**, click it. Firefox can leave site access off until you allow it.
+
+**Updating:** pull the new files, run `./build-firefox.sh` again and install the new `.xpi` the same way.
 
 Chrome's built-in AI (the older optional sorting) isn't available in Firefox. The on-device CLIP and E5 sorting is.
 
