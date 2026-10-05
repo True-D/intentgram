@@ -7,9 +7,9 @@ This repository holds the Chrome extension prototype and its planning docs.
 | Folder | What's inside |
 |---|---|
 | [`extension/`](extension/) | The Chrome extension. Its [README](extension/README.md) covers installing, using it and how it works. |
-| [`docs/`](docs/) | The product spec and the feasibility test checklist |
+| [`spec.md`](spec.md), [`feasibility-tests.md`](feasibility-tests.md) | The product spec and the feasibility test checklist |
 | [`store-assets/`](store-assets/) | Chrome Web Store icon and screenshots |
-| [`privacy/`](privacy/) | Privacy policy page, to be published on a public GitHub Pages site |
+| [`privacy-site/`](privacy-site/) | Privacy policy page, to be published on a public GitHub Pages site |
 
 ## Try it
 
