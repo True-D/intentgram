@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Intentgram Feed Probe",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Feasibility prototype: records the Instagram feed posts you scroll past so you can see what data is available.",
   "permissions": [
     "storage",

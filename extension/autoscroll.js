@@ -117,7 +117,7 @@ const IntentgramAutoScroll = (() => {
     for (const t of ['wheel', 'keydown', 'mousedown', 'touchstart']) window.addEventListener(t, takeOver, true);
     chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
       if (msg.type === 'autoscroll-start') { start(msg.days); reply({ ok: true }); }
-      if (msg.type === 'autoscroll-stop') { stop('Stopped by you.'); reply({ ok: true }); }
+      if (msg.type === 'autoscroll-stop') { if (run) stop(msg.why || 'Stopped by you.'); reply({ ok: true }); }
     });
   }
 

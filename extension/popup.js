@@ -3,12 +3,29 @@
   document.getElementById('count').textContent = Object.keys(posts).length;
   document.getElementById('sub').textContent = `posts kept · ${Object.keys(starred).length} ★ saved`;
 })();
+
+// Pause stops new posts from being stored (and stops auto-scroll) until resumed.
+async function showPaused() {
+  const { paused } = await chrome.storage.local.get('paused');
+  document.getElementById('pause').textContent = paused ? 'Resume collecting' : 'Pause collecting';
+  document.getElementById('pause').classList.toggle('paused', !!paused);
+  document.getElementById('auto').disabled = !!paused;
+  if (paused) document.getElementById('autoStatus').textContent = 'Collecting is paused. New posts are not saved.';
+  return paused;
+}
+document.getElementById('pause').onclick = async () => {
+  const { paused } = await chrome.storage.local.get('paused');
+  await chrome.runtime.sendMessage({ type: 'pause', paused: !paused });
+  if (paused) document.getElementById('autoStatus').textContent = '';
+  showPaused();
+};
 document.getElementById('open').onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL('viewer.html') });
 document.getElementById('settings').onclick = () => chrome.runtime.openOptionsPage();
 
 // Auto-scroll runs in the Instagram tab; the popup only starts it and shows the last result.
 (async () => {
   const { autoScroll } = await chrome.storage.local.get('autoScroll');
+  if (await showPaused()) return;
   if (autoScroll) {
     document.getElementById('autoStatus').textContent = autoScroll.state === 'running'
       ? 'Auto-scroll is running in the Instagram tab.'

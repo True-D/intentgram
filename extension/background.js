@@ -8,13 +8,26 @@ let queue = Promise.resolve();
 const enqueue = (fn) => (queue = queue.then(fn).catch((e) => console.warn('[intentgram]', e)));
 
 async function updateBadge() {
-  const { posts = {} } = await chrome.storage.local.get('posts');
+  const { posts = {}, paused } = await chrome.storage.local.get(['posts', 'paused']);
   const n = Object.keys(posts).length;
-  chrome.action.setBadgeText({ text: n ? String(n) : '' });
-  chrome.action.setBadgeBackgroundColor({ color: '#6b4fd8' });
+  chrome.action.setBadgeText({ text: paused ? '||' : n ? String(n) : '' });
+  chrome.action.setBadgeBackgroundColor({ color: paused ? '#8e8e93' : '#6b4fd8' });
+}
+
+// While collecting is paused, posts seen on Instagram are ignored, not stored.
+const isPaused = async () => !!(await chrome.storage.local.get('paused')).paused;
+
+async function setPaused(paused) {
+  await chrome.storage.local.set({ paused });
+  if (paused) {
+    const tabs = await chrome.tabs.query({ url: HOME + '*' });
+    for (const t of tabs) chrome.tabs.sendMessage(t.id, { type: 'autoscroll-stop', why: 'Stopped: collecting is paused.' }).catch(() => {});
+  }
+  updateBadge();
 }
 
 async function savePosts(posts, source) {
+  if (await isPaused()) return;
   const { posts: stored = {} } = await chrome.storage.local.get('posts');
   const now = Date.now();
   for (const p of posts) {
@@ -27,6 +40,7 @@ async function savePosts(posts, source) {
 }
 
 async function saveScreenCodes(codes) {
+  if (await isPaused()) return;
   const { screenCodes = {} } = await chrome.storage.local.get('screenCodes');
   const now = Date.now();
   let changed = false;
@@ -93,6 +107,7 @@ function waitForLoad(tabId) {
 }
 
 async function startAutoScroll(days) {
+  if (await isPaused()) throw new Error('Collecting is paused. Resume it first.');
   const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   let tab = active;
   if (active && (active.url || '').startsWith(HOME)) {
@@ -130,6 +145,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     screen: () => saveScreenCodes(msg.codes),
     cleanup: () => cleanup().then(saveImages),
     deleteAll: deleteAllExceptStarred,
+    pause: () => setPaused(!!msg.paused),
   };
   if (!jobs[msg.type]) return false;
   enqueue(jobs[msg.type]).then(() => reply({ ok: true }));

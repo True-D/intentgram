@@ -1,4 +1,4 @@
-# Intentgram — Chrome extension prototype (v0.6.0)
+# Intentgram — Chrome extension prototype (v0.6.1)
 
 Intentgram lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -27,6 +27,15 @@ It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../fe
 2. Click the icon, then **Open collected posts** to open the feed page.
 3. To skip the scrolling, click the icon, then **Auto-scroll: collect the last 7 days** (see Auto-scroll).
 4. Click **Manage** (top right of the feed page, or in the icon menu) for accounts, saving options and test numbers.
+5. To browse Instagram without collecting, click the icon, then **Pause collecting** (see Pausing).
+
+## Pausing
+
+**Pause collecting** (in the icon menu) stops saving new posts until you click **Resume collecting**. It stays paused after you close Chrome.
+
+- While paused, the icon's badge shows **||**, the feed page shows a "Collecting is paused" note with a Resume button, and auto-scroll can't start.
+- Pausing stops an auto-scroll that's running.
+- Posts already collected stay, and the feed page, categories and Manage keep working.
 
 ## Auto-scroll
 

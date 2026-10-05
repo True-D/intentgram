@@ -301,6 +301,10 @@ function renderAll() {
   const fromLink = /#account=([^&]+)/.exec(location.hash);
   if (fromLink) activeAccount = decodeURIComponent(fromLink[1]);
   renderAll();
+  const showPaused = (p) => $('pausedNote').classList.toggle('hidden', !p);
+  showPaused((await chrome.storage.local.get('paused')).paused);
+  chrome.storage.onChanged.addListener((c) => { if (c.paused) showPaused(c.paused.newValue); });
+  $('resume').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'pause', paused: false }));
   $('acct').addEventListener('input', (e) => showAccount(e.target.value));
   for (const id of ['type', 'q', 'when', 'from', 'to']) $(id).addEventListener('input', renderGrid);
   $('source').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) setSource(b.dataset.k); });
