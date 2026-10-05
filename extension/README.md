@@ -1,4 +1,4 @@
-# Intentgram — Chrome extension prototype (v0.6.1)
+# Intentgram — Chrome extension prototype (v0.6.3)
 
 Intentgram lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -124,7 +124,7 @@ When it isn't sure, a post goes to its account's usual topic if the account most
 
 ### Topics
 
-**Manage → Topics** lists the categories. Add, rename or remove topics, and edit their descriptions. The AI matches each post against the topic's name and every phrase in its description, so list what the posts show or talk about, in any language, separated by commas. For example: `Birding` with `birds, bird watching, binoculars, 賞鳥, 鳥類`. Renaming a topic keeps your choices; removing one drops them. **Other** is always there.
+**Manage → Topics** lists the categories. There are 60 to start with, from Birds and Coffee & cafés to Film, Open calls, Life and Self help, and only the ones that have posts appear on the feed page. Add, rename or remove topics, and edit their descriptions. The AI matches each post against the topic's name and every phrase in its description, so list what the posts show or talk about, in any language, separated by commas. For example: `Birding` with `birds, bird watching, binoculars, 賞鳥, 鳥類`. Renaming a topic keeps your choices; removing one drops them. **Other** is always there.
 
 ### Without AI sorting
 
