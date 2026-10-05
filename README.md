@@ -4,7 +4,7 @@ Browse your Instagram feed by intent: by topic, place, time and account, instead
 
 Intently is a browser extension prototype for Chrome, Firefox and LibreWolf. It collects the posts in your Instagram home feed and lets you browse them by topic, separate from the algorithm's order:
 
-- **Following, Suggested and Ads tabs** keep posts from accounts you follow apart from what Instagram mixes in.
+- **Friends, Creators & brands and Suggested tabs** keep your friends' posts apart from creators, brands and what Instagram mixes in. Ads stay hidden unless you turn them on.
 - **AI sorting by picture and caption** puts each post in a topic. It runs on your computer and learns from the categories you correct.
 - **Topics you define**, described in any language.
 - **Auto-scroll** collects the last 7 days of your feed for you.

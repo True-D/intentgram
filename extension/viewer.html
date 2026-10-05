@@ -14,11 +14,11 @@
   <div class="note muted hidden" id="pausedNote">Collecting is paused, so new posts aren't being saved. <button class="act" id="resume">Resume collecting</button></div>
 
   <section class="filters hidden" id="filters" aria-label="Filters">
-    <div><div class="lbl">Type</div><div class="opts" id="type" data-v=""></div></div>
     <div><div class="lbl">Posted</div><div class="opts" id="when" data-v=""></div>
       <div id="customRange" class="hidden range"><input type="date" id="from" aria-label="From"> to <input type="date" id="to" aria-label="To"></div></div>
     <div><div class="lbl">Place</div><input id="loc" list="placeList" placeholder="Taipei, Taiwan, Kyoto…" autocomplete="off"><datalist id="placeList"></datalist></div>
     <div><div class="lbl">Account</div><select id="acct"><option value="">All accounts</option></select></div>
+    <div><div class="lbl">Ads</div><label class="check"><input type="checkbox" id="showAds"> Show ads under Suggested and All</label></div>
     <div class="foot"><span class="muted" id="matchCount"></span><button class="link" id="clearAll">Clear all</button></div>
   </section>
 

@@ -57,6 +57,16 @@ async function saveScreenCodes(codes, ads = []) {
   await chrome.storage.local.set({ adCodes, posts });
 }
 
+// Account details Instagram sent (private, verified, business or creator...), merged
+// per username so a profile visit adds to what feed posts said.
+async function saveAccounts(found) {
+  if (await isPaused()) return;
+  const { accountInfo = {} } = await chrome.storage.local.get('accountInfo');
+  const seen = Date.now();
+  for (const [name, f] of Object.entries(found)) accountInfo[name] = { ...accountInfo[name], ...f, seen };
+  await chrome.storage.local.set({ accountInfo });
+}
+
 // Downloads images not saved yet, one at a time. Links that already expired are skipped.
 let saving = false;
 const failed = new Set();
@@ -90,6 +100,11 @@ async function cleanup() {
     for (const [c, t] of Object.entries(adCodes)) if (t < cutoff) delete adCodes[c];
     await chrome.storage.local.set({ posts, screenCodes, adCodes });
   }
+  const { accountInfo = {} } = await chrome.storage.local.get('accountInfo');
+  const authors = new Set(Object.values(posts).map((p) => p.author));
+  // Accounts with no captured posts are kept a while, in case their posts arrive later.
+  const unused = Object.keys(accountInfo).filter((a) => !authors.has(a) && (accountInfo[a].seen || 0) < Date.now() - (keepDays || 30) * 864e5);
+  if (unused.length) { for (const a of unused) delete accountInfo[a]; await chrome.storage.local.set({ accountInfo }); }
   const orphans = (await S.imageKeys()).filter((id) => !posts[id]);
   if (orphans.length) await S.deleteImages(orphans);
   const oldVectors = (await S.vectorKeys()).filter((id) => !posts[id] && !String(id).startsWith('__'));
@@ -153,6 +168,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   const jobs = {
     posts: () => savePosts(msg.posts, msg.source),
     screen: () => saveScreenCodes(msg.codes, msg.adCodes),
+    accounts: () => saveAccounts(msg.accounts),
     cleanup: () => cleanup().then(saveImages),
     deleteAll: deleteAllExceptStarred,
     pause: () => setPaused(!!msg.paused),

@@ -1,4 +1,4 @@
-# Intently — Chrome extension prototype (v0.6.6)
+# Intently — Chrome extension prototype (v0.6.7)
 
 Intently lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -72,17 +72,30 @@ The icon menu shows the result of the last run.
 
 ## Feed page
 
-The top row holds everything you need most: the **Following / Suggested / Ads / All** tabs, a **search** box, a **Filters** button and **Manage**. Categories sit in a sidebar on the left, and the posts fill the rest. On a narrow window the tabs and categories become single rows you scroll sideways.
+The top row holds everything you need most: the **Friends / Creators & brands / Suggested / All** tabs, a **search** box, a **Filters** button and **Manage**. Categories sit in a sidebar on the left, and the posts fill the rest. On a narrow window the tabs and categories become single rows you scroll sideways.
 
-### Following, Suggested, Ads
+### Friends, Creators & brands, Suggested
 
 The tabs choose which posts the whole page shows, each with a count:
-- **Following** (default): posts from accounts you follow
+- **Friends** (default): posts from personal accounts you follow
+- **Creators & brands**: posts from creator and business accounts you follow
 - **Suggested**: posts Instagram added from accounts you don't follow
-- **Ads**: sponsored posts. A post counts as an ad if Instagram's feed data marks it as one, or if it showed a "Sponsored" label on the page. Ads already collected as Suggested move here once you scroll past them again.
-- **All**: everything captured, matching the number in the icon menu
+- **All**: everything captured
+
+Ads are hidden. Turn on **Show ads** in Filters to see them under Suggested and All. A post counts as an ad if Instagram's feed data marks it as one, or if it showed a "Sponsored" label on the page.
 
 Categories and their counts follow the selected tab.
+
+### Friend, or creator or brand?
+
+Each account you follow is sorted as a whole, using what Instagram already sends:
+1. **Your choice**, from the post's **⋯** menu or the account list in Manage.
+2. **The account type** Instagram reports: personal, business or creator. The feed doesn't always include it; opening someone's profile on Instagram does, and Intently remembers it.
+3. **Private accounts** are friends, because creator and business accounts can't be private.
+4. **Hints** for creators and brands: a verified badge, a profile category, ads or paid partnerships. An account that follows you back counts as a friend.
+5. Otherwise it goes under Friends with a small **?** next to its name. Click the **?** to choose.
+
+In the All tab, creator and brand posts carry a **Creator**, **Brand** or **Creator or brand** badge.
 
 ### Categories (sidebar)
 
@@ -96,19 +109,19 @@ Categories and their counts follow the selected tab.
 
 | Filter | What it does |
 |---|---|
-| **Type** | Any, Photos, Carousels, Videos or Reels |
 | **Posted** | Any time, Today, Yesterday, Last 7 days, or Custom dates |
 | **Place** | Any area, like "Taiwan", "Taipei", "Xinyi" or "Kyoto" (see Place search) |
 | **Account** | One account's posts. Clicking an @name on a post does the same. |
+| **Ads** | **Show ads** adds sponsored posts to Suggested and All |
 
-Active filters show as pills above the posts, like `Last 7 days ✕`; click one to remove it, or **Clear all** in the panel. The Filters button shows how many are on. Everything combines: for example Following + Events + Last 7 days + Taipei.
+Active filters show as pills above the posts, like `Last 7 days ✕`; click one to remove it, or **Clear all** in the panel. The Filters button shows how many are on. Everything combines: for example Friends + Events + Last 7 days + Taipei.
 
 ### Post cards
 
 - Each card shows the picture, the @account, the first 3 lines of the caption and one grey line with the category, how long ago it was posted and the place. Events get a summary box.
-- Suggested posts and ads carry a **Suggested** or **Ad** badge on the picture.
+- Suggested posts and ads carry a **Suggested** or **Ad** badge on the picture; in All, creator and brand posts carry their own badge.
 - **★** saves the post forever. Click it again to unsave.
-- **⋯** has the category menu, the type, the full date and place, and **Open on Instagram**.
+- **⋯** has the category menu, the friend or creator menu, the type, the full date and place, and **Open on Instagram**.
 
 ## How categories are chosen
 
@@ -191,7 +204,7 @@ Type any area into the Place filter. Posts tagged anywhere inside it are shown.
 
 - **Desktop only.** It runs in Chrome, Firefox and LibreWolf on a computer. Phones would need a port: Firefox for Android, or Safari on iPhone.
 - **Never tested on real Instagram.** All features were tested with a fake Instagram feed. Instagram's internal data format isn't documented and can change at any time. If capture drops to 0, `parser.js` needs updating.
-- **Who you follow.** The Following tab relies on Instagram marking which posts come from accounts you follow. If it doesn't, the extension shows all non-ad posts and says so in Manage.
+- **Who you follow.** The Friends and Creators & brands tabs rely on Instagram marking which posts come from accounts you follow. If it doesn't, the extension shows all non-ad posts and says so in Manage.
 - **Rough automatic sorting.** Categories from counting words are approximate. Use the on-device AI button, or fix accounts by hand.
 - **Instagram's Terms.** They restrict automated collection. This prototype only reads what your own browser already received, for your own use. Check the policy (test #9) before sharing it with others.
 

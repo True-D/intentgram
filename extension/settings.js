@@ -21,6 +21,8 @@ function renderStats() {
     stat(onScreen.length ? `${captured} / ${onScreen.length} (${pct(captured, onScreen.length)})` : '–', 'home-feed posts on screen that were captured (coverage, test #2)'),
     stat(new Set(posts.map((p) => p.author)).size, 'different authors'),
     stat(`${followed} / ${notFollowed} / ${ads}`, 'followed / suggested / ads'),
+    stat(`${[...accounts.values()].filter((a) => a.kind === 'friend').length} / ${[...accounts.values()].filter((a) => a.kind === 'pro').length} / ${[...accounts.values()].filter((a) => a.sure === 'no').length}`, 'accounts: friends / creators and brands / not sure'),
+    stat(Object.keys(data.accountInfo).length, 'accounts with details from Instagram (private, business, creator…)'),
     stat(`${byType('photo')} · ${byType('carousel')} · ${byType('video')} · ${byType('reel')}`, 'photo · carousel · video · reel (test #4)'),
     stat(pct(posts.filter((p) => p.caption.trim()).length, posts.length), 'have a caption (test #11)'),
     stat(pct(posts.filter((p) => p.altText).length, posts.length), 'have Instagram alt text (useful for AI)'),
@@ -49,8 +51,11 @@ function renderAccounts() {
       : Object.entries(a.scores).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([t, n]) => `${t} ${n}`).join(', ') || 'No topic words found';
     const sel = `<select data-author="${esc(author)}"><option value="">Auto: ${esc(data.overrides[author] ? (a.ai || a.auto) : a.topic)}</option>` +
       options.map((o) => `<option${data.overrides[author] === o ? ' selected' : ''}>${esc(o)}</option>`).join('') + '</select>';
-    return `<tr><td><a href="viewer.html#account=${encodeURIComponent(author)}">@${esc(author)}</a></td><td>${a.posts.length}</td><td>${sel}</td><td class="muted">${esc(why)}</td></tr>`;
-  }).join('') || '<tr><td colspan="4" class="muted">No accounts yet.</td></tr>';
+    const mine = !!data.kindOverrides[author];
+    const kind = `<select data-kind="${esc(author)}" title="${esc(a.why)}"><option value="">Auto: ${(a.autoKind || a.kind) === 'pro' ? 'Creator or brand' : 'Friend'}${a.sure === 'no' ? ' (not sure)' : ''}</option>` +
+      [['friend', 'Friend'], ['pro', 'Creator or brand']].map(([v, l]) => `<option value="${v}"${mine && a.kind === v ? ' selected' : ''}>${l}</option>`).join('') + '</select>';
+    return `<tr><td><a href="viewer.html#account=${encodeURIComponent(author)}">@${esc(author)}</a></td><td>${a.posts.length}</td><td>${kind}<div class="muted">${esc(a.why)}</div></td><td>${sel}</td><td class="muted">${esc(why)}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="muted">No accounts yet.</td></tr>';
 }
 
 async function renderUsage() {
@@ -169,6 +174,13 @@ async function setupAi() {
   });
   $('saveImages').addEventListener('change', (e) => saveSettings({ saveImages: e.target.checked }));
   $('acctRows').addEventListener('change', async (e) => {
+    const k = e.target.dataset.kind;
+    if (k) {
+      if (e.target.value) data.kindOverrides[k] = e.target.value; else delete data.kindOverrides[k];
+      await chrome.storage.local.set({ accountKinds: data.kindOverrides });
+      render();
+      return;
+    }
     const author = e.target.dataset.author;
     if (!author) return;
     if (e.target.value) data.overrides[author] = e.target.value; else delete data.overrides[author];
