@@ -1,4 +1,4 @@
-# Intentgram — Feasibility Test Checklist
+# Intently — Feasibility Test Checklist
 
 Based on `spec.md`. Researched 2026-10-03. Ordered by risk: if a test near the top fails, the ones below it may not matter yet.
 
@@ -79,7 +79,7 @@ Extra tests this adds:
 
 ## Assumptions
 
-- Intentgram is meant for normal personal accounts, as the spec says ("connect personal Instagram account"). That's exactly the case the official API no longer supports, which is why P0 dominates.
+- Intently is meant for normal personal accounts, as the spec says ("connect personal Instagram account"). That's exactly the case the official API no longer supports, which is why P0 dominates.
 - Web or mobile app is undecided; a browser-extension path only works on desktop web.
 
 ## Sources

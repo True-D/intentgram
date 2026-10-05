@@ -178,7 +178,7 @@ async function setupAi() {
   $('export').onclick = async () => {
     const d = await chrome.storage.local.get(null);
     const url = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
-    const a = Object.assign(document.createElement('a'), { href: url, download: `intentgram-${new Date().toISOString().slice(0, 10)}.json` });
+    const a = Object.assign(document.createElement('a'), { href: url, download: `intently-${new Date().toISOString().slice(0, 10)}.json` });
     a.click();
   };
   $('deleteAll').onclick = async () => {

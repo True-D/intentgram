@@ -1,4 +1,4 @@
-# Intentgram — MVP Spec
+# Intently — MVP Spec
 
 ### Purpose
 
@@ -86,4 +86,4 @@ User can:
 
 > **AI organizes. You choose.**
 
-> **Intentgram — Browse Instagram with intent.**
+> **Intently — Browse Instagram with intent.**
