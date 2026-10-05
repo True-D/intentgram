@@ -2,7 +2,7 @@
 
 Browse your Instagram feed by intent: by topic, place, time and account, instead of the algorithm's order.
 
-![feed]([http://url/to/img.png](https://github.com/True-D/intentgram/blob/main/store-assets/screenshot-1-feed.png)
+![feed](https://github.com/True-D/intentgram/blob/main/store-assets/screenshot-1-feed.png)
 
 Intently is a browser extension prototype for Chrome, Firefox and LibreWolf. It collects the posts in your Instagram home feed and lets you browse them by topic, separate from the algorithm's order:
 
