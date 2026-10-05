@@ -79,5 +79,5 @@ function accountKind(author, posts, data) {
   if (posts.some((p) => p.isAd)) return pro('Has run ads');
   if (posts.some((p) => p.isPaidPartnership)) return pro('Posts paid partnerships');
   if (i.followedBy) return friend('Follows you back');
-  return friend('Not sure: nothing shows it\'s a creator or brand', 'no');
+  return pro('Not sure: nothing shows it\'s a friend', 'no');
 }

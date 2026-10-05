@@ -173,7 +173,7 @@ function renderGrid() {
     const acct = accounts.get(p.author) || {};
     const badge = src === 'ad' ? '<span class="corner ad">Ad</span>' : src === 'other' ? '<span class="corner other">Suggested</span>'
       : src === 'pro' && source !== 'pro' ? `<span class="corner pro">${esc(acct.label)}</span>` : '';
-    const unsure = src === 'friend' && acct.sure === 'no'
+    const unsure = acct.sure === 'no' && (src === 'friend' || src === 'pro')
       ? `<button class="kindq" title="Not sure if @${esc(p.author)} is a friend or a creator or brand. Click to choose.">?</button>` : '';
     const meta = [esc(p.topic), esc(ago(p.takenAt)), p.location ? esc(p.location) : ''].filter(Boolean).join(' · ');
     return `<div class="card">
