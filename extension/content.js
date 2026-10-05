@@ -7,6 +7,11 @@
     if (posts.length) chrome.runtime.sendMessage({ type: 'posts', posts, source }).catch(() => {});
   }
 
+  function saveAccounts(text) {
+    const accounts = IntentgramParser.accountsFromText(text);
+    if (Object.keys(accounts).length) chrome.runtime.sendMessage({ type: 'accounts', accounts }).catch(() => {});
+  }
+
   function saveScreenCodes(codes, adCodes) {
     if (codes.length) chrome.runtime.sendMessage({ type: 'screen', codes, adCodes }).catch(() => {});
   }
@@ -25,6 +30,7 @@
     let path = e.data.url;
     try { path = new URL(e.data.url, location.href).pathname; } catch (_) {}
     savePosts(IntentgramParser.extractFromText(e.data.text), path);
+    saveAccounts(e.data.text);
   });
 
   // The first batch of the feed is embedded in the page HTML rather than fetched.
@@ -34,6 +40,8 @@
       if (t && (t.includes('image_versions2') || t.includes('display_url'))) {
         savePosts(IntentgramParser.extractFromText(t), 'embedded-html');
       }
+      // Profile pages embed the account's details (business, creator, category).
+      if (t && t.includes('"username"')) saveAccounts(t);
     }
   }
 

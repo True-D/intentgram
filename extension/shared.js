@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const norm = (t) => String(t).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').trim();
 const fmtTime = (ms) => (ms ? new Date(ms).toLocaleString() : '–');
 
-const KEYS = ['posts', 'screenCodes', 'accountTopics', 'aiTopics', 'aiEvents', 'geoCache', 'starred', 'topics', 'postTopics', 'aiPostTopics', 'aiPostGuesses'];
+const KEYS = ['posts', 'screenCodes', 'accountTopics', 'aiTopics', 'aiEvents', 'geoCache', 'starred', 'topics', 'postTopics', 'aiPostTopics', 'aiPostGuesses', 'accountInfo', 'accountKinds'];
 
 async function loadData() {
   const d = await chrome.storage.local.get(KEYS);
@@ -20,6 +20,8 @@ async function loadData() {
     postTopics: d.postTopics || {},   // post id -> category the user picked for that post
     aiPostTopics: d.aiPostTopics || {}, // post id -> category from the on-device picture+caption models
     aiPostGuesses: d.aiPostGuesses || {}, // post id -> the models' best guess when they weren't sure
+    accountInfo: d.accountInfo || {}, // author -> what Instagram said about the account (private, business…)
+    kindOverrides: d.accountKinds || {}, // author -> 'friend' or 'pro', picked by you
   };
 }
 
@@ -47,7 +49,7 @@ function computeAccounts(data) {
     const sure = Object.values(mix).reduce((a, b) => a + b, 0);
     const focused = !!usual && usual[1] / sure >= 0.6;
     const topic = valid(data.overrides[author]) || (usual && usual[0]) || ai || auto;
-    accounts.set(author, { posts, auto, ai, scores, mix, focused, topic });
+    accounts.set(author, { posts, auto, ai, scores, mix, focused, topic, ...accountKind(author, posts, data) });
   }
   for (const p of data.all) {
     const a = accounts.get(p.author);
@@ -56,4 +58,26 @@ function computeAccounts(data) {
     p.event = IntentgramEvents.merge(IntentgramEvents.extract(p), data.aiEvents[p.id], p);
   }
   return accounts;
+}
+
+// Whether an account is a friend (a personal account) or a creator or brand.
+// Your choice wins, then what Instagram says about the account type, then
+// private accounts (businesses and creators can't be private), then hints.
+// sure: 'yes' for your choice or a clear fact, 'guess' for hints, 'no' when nothing is known.
+function accountKind(author, posts, data) {
+  const i = data.accountInfo[author] || {};
+  const label = i.accountType === 2 || i.isBusiness ? 'Brand' : i.accountType === 3 ? 'Creator' : 'Creator or brand';
+  const pick = data.kindOverrides[author];
+  if (pick) return { kind: pick, sure: 'yes', why: 'You chose this', label, autoKind: accountKind(author, posts, { ...data, kindOverrides: {} }).kind };
+  const pro = (why, sure = 'guess') => ({ kind: 'pro', sure, why, label });
+  const friend = (why, sure = 'guess') => ({ kind: 'friend', sure, why });
+  if (i.accountType === 2 || i.accountType === 3 || i.isBusiness || i.isProfessional) return pro(i.category ? `${label} account · ${i.category}` : `${label} account`, 'yes');
+  if (i.accountType === 1 || i.isProfessional === false) return friend('Personal account', 'yes');
+  if (i.isPrivate) return friend('Private account', 'yes');
+  if (i.isVerified) return pro('Verified account');
+  if (i.category) return pro(`Has a category: ${i.category}`);
+  if (posts.some((p) => p.isAd)) return pro('Has run ads');
+  if (posts.some((p) => p.isPaidPartnership)) return pro('Posts paid partnerships');
+  if (i.followedBy) return friend('Follows you back');
+  return friend('Not sure: nothing shows it\'s a creator or brand', 'no');
 }

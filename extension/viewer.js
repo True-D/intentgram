@@ -31,12 +31,11 @@ function placeLine(p) {
 
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); }
 
-// Type and time are rows of one-click options in the Filters panel.
-const TYPES = [['', 'Any'], ['photo', 'Photos'], ['carousel', 'Carousels'], ['video', 'Videos'], ['reel', 'Reels']];
+// Time is a row of one-click options in the Filters panel.
 const WHENS = [['', 'Any time'], ['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'Last 7 days'], ['custom', 'Custom']];
 const optVal = (id) => $(id).dataset.v;
 function renderOpts() {
-  for (const [id, opts] of [['type', TYPES], ['when', WHENS]]) {
+  for (const [id, opts] of [['when', WHENS]]) {
     $(id).innerHTML = opts.map(([v, label]) =>
       `<button class="opt${v === optVal(id) ? ' on' : ''}" data-v="${v}" aria-pressed="${v === optVal(id)}">${label}</button>`).join('');
   }
@@ -86,21 +85,28 @@ function isFollowed(p) {
   return !p.isAd;
 }
 
-// Which posts the whole page shows: from accounts you follow (the default),
-// suggested by Instagram, ads, or all of them.
-let source = 'followed';
+// Which posts the whole page shows: friends you follow (the default), creators and
+// businesses you follow, suggested by Instagram, or all of them. Ads are hidden
+// unless "Show ads" is on in Filters; then they appear under Suggested and All.
+let source = 'friend';
+let showAds = false;
 const SOURCES = [
-  ['followed', 'Following', 'Posts from accounts you follow'],
+  ['friend', 'Friends', 'Personal accounts you follow'],
+  ['pro', 'Creators & brands', 'Creator and brand accounts you follow'],
   ['other', 'Suggested', 'Posts Instagram suggested from accounts you don\'t follow'],
-  ['ad', 'Ads', 'Sponsored posts'],
   ['', 'All', 'Everything captured'],
 ];
-const sourceOf = (p) => (p.isAd ? 'ad' : isFollowed(p) ? 'followed' : 'other');
-const sourceMatch = (p) => !source || sourceOf(p) === source;
+const kindOf = (p) => (accounts.get(p.author) || {}).kind || 'friend';
+const sourceOf = (p) => (p.isAd ? 'ad' : !isFollowed(p) ? 'other' : kindOf(p) === 'pro' ? 'pro' : 'friend');
+const inSource = (p, k) => {
+  const s = sourceOf(p);
+  return s === 'ad' ? showAds && (k === '' || k === 'other') : !k || s === k;
+};
+const sourceMatch = (p) => inSource(p, source);
 
 function renderSource() {
-  const n = { '': data.all.length, followed: 0, other: 0, ad: 0 };
-  for (const p of data.all) n[sourceOf(p)]++;
+  const n = {};
+  for (const [k] of SOURCES) n[k] = data.all.filter((p) => inSource(p, k)).length;
   $('source').innerHTML = SOURCES.map(([k, label, tip]) =>
     `<button role="tab" aria-selected="${k === source}" class="tab ${k || 'all'}${k === source ? ' on' : ''}" data-k="${k}" title="${esc(tip)}">${label}<b>${n[k]}</b></button>`).join('');
 }
@@ -125,18 +131,18 @@ function ago(ms) {
 // Active filters, as removable pills. Also counted on the Filters button.
 function activeFilters() {
   const out = [];
-  const type = TYPES.find(([v]) => v && v === optVal('type'));
-  if (type) out.push(['type', type[1]]);
   const when = optVal('when');
   if (when === 'custom') out.push(['when', [$('from').value, $('to').value].filter(Boolean).join(' – ') || 'Custom dates']);
   else if (when) out.push(['when', WHENS.find(([v]) => v === when)[1]]);
   if ($('loc').value.trim()) out.push(['loc', '📍 ' + $('loc').value.trim()]);
   if (activeAccount) out.push(['acct', '@' + activeAccount]);
+  if (showAds) out.push(['ads', 'Ads shown']);
   return out;
 }
 
 function clearFilter(k) {
-  if (k === 'type' || k === 'when') { $(k).dataset.v = ''; renderOpts(); }
+  if (k === 'when') { $(k).dataset.v = ''; renderOpts(); }
+  if (k === 'ads') { setShowAds(false); return; }
   if (k === 'loc') $('loc').value = '';
   if (k === 'acct') { showAccount(''); return; }
   renderGrid();
@@ -144,7 +150,6 @@ function clearFilter(k) {
 
 function renderGrid() {
   const all = data.all;
-  const type = optVal('type');
   const q = $('q').value.trim().toLowerCase();
   const loc = $('loc').value.trim();
   const range = timeRange();
@@ -153,7 +158,6 @@ function renderGrid() {
     (!range || (p.takenAt && p.takenAt >= range[0] && p.takenAt < range[1])) &&
     (!loc || placeMatch(p, loc)) &&
     (!activeAccount || p.author === activeAccount) &&
-    (!type || p.type === type) &&
     sourceMatch(p) &&
     (!q || (p.caption + ' ' + p.author).toLowerCase().includes(q)));
   if (activeTopic === '__events') list = [...list].sort(eventOrder);
@@ -161,15 +165,20 @@ function renderGrid() {
   $('grid').innerHTML = list.map((p) => {
     const on = !!data.starred[p.id];
     const src = sourceOf(p);
-    const badge = src === 'ad' ? '<span class="corner ad">Ad</span>' : src === 'other' ? '<span class="corner other">Suggested</span>' : '';
+    const acct = accounts.get(p.author) || {};
+    const badge = src === 'ad' ? '<span class="corner ad">Ad</span>' : src === 'other' ? '<span class="corner other">Suggested</span>'
+      : src === 'pro' && source !== 'pro' ? `<span class="corner pro">${esc(acct.label)}</span>` : '';
+    const unsure = src === 'friend' && acct.sure === 'no'
+      ? `<button class="kindq" title="Not sure if @${esc(p.author)} is a friend or a creator or brand. Click to choose.">?</button>` : '';
     const meta = [esc(p.topic), esc(ago(p.takenAt)), p.location ? esc(p.location) : ''].filter(Boolean).join(' · ');
     return `<div class="card">
       <div class="media">${badge}<img loading="lazy" referrerpolicy="no-referrer" data-id="${esc(p.id)}" alt="${esc(p.altText || '')}"></div>
       <div class="body">
-        <div class="who"><a href="#" class="author" data-author="${esc(p.author)}" title="Show only @${esc(p.author)}">@${esc(p.author)}</a>
+        <div class="who"><a href="#" class="author" data-author="${esc(p.author)}" title="Show only @${esc(p.author)}">@${esc(p.author)}</a>${unsure}
           <button class="star${on ? ' on' : ''}" data-id="${esc(p.id)}" title="${on ? 'Saved forever. Click to unsave' : 'Save forever'}" aria-label="${on ? 'Unsave' : 'Save'}">${on ? '★' : '☆'}</button>
           <details class="more"><summary title="More" aria-label="More">⋯</summary><div class="menu">
             <label>Category ${topicPicker(p)}</label>
+            <label>Account ${kindPicker(p.author, acct)}</label>
             <div class="muted">${esc(p.type)}${p.slides > 1 ? ' · ' + p.slides + ' slides' : ''} · posted ${esc(fmtTime(p.takenAt))}</div>
             ${p.location ? `<div class="muted">📍 ${esc(placeLine(p))}</div>` : ''}
             <a href="${esc(p.permalink)}" target="_blank" rel="noopener">Open on Instagram ↗</a>
@@ -199,6 +208,23 @@ function topicPicker(p) {
   return `<select class="tag topic${mine ? ' mine' : ''}" data-pick="${esc(p.id)}" title="${mine ? 'You chose this category' : 'Change this post\'s category'}">` +
     (mine ? '<option value="">Automatic</option>' : '') +
     names.map((n) => `<option${n === p.topic ? ' selected' : ''}>${esc(n)}</option>`).join('') + '</select>';
+}
+
+// Friend or creator/business, for the whole account. "Automatic" undoes your choice.
+function kindPicker(author, a) {
+  const mine = !!data.kindOverrides[author];
+  const opt = (v, label) => `<option value="${v}"${mine && a.kind === v ? ' selected' : ''}>${label}</option>`;
+  return `<select class="tag kind${mine ? ' mine' : ''}" data-kind="${esc(author)}" title="${esc(a.why || '')}">` +
+    `<option value=""${mine ? '' : ' selected'}>Auto: ${(a.autoKind || a.kind) === 'pro' ? 'Creator or brand' : 'Friend'}</option>` +
+    opt('friend', 'Friend') + opt('pro', 'Creator or brand') + '</select>';
+}
+
+function setShowAds(on) {
+  showAds = on;
+  $('showAds').checked = on;
+  renderSource();
+  renderChips();
+  renderGrid();
 }
 
 // ---- On-device sorting by picture and caption (ai.js) ----
@@ -372,7 +398,8 @@ function renderAll() {
   $('resume').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'pause', paused: false }));
   $('acct').addEventListener('input', (e) => showAccount(e.target.value));
   for (const id of ['q', 'from', 'to']) $(id).addEventListener('input', renderGrid);
-  for (const id of ['type', 'when']) $(id).addEventListener('click', (e) => {
+  $('showAds').addEventListener('change', (e) => setShowAds(e.target.checked));
+  for (const id of ['when']) $(id).addEventListener('click', (e) => {
     const b = e.target.closest('.opt');
     if (!b) return;
     $(id).dataset.v = b.dataset.v;
@@ -384,8 +411,11 @@ function renderAll() {
     $('filtersBtn').setAttribute('aria-expanded', open);
   });
   $('clearAll').addEventListener('click', () => {
-    $('type').dataset.v = ''; $('when').dataset.v = ''; $('loc').value = '';
+    $('when').dataset.v = ''; $('loc').value = '';
+    showAds = false; $('showAds').checked = false;
     renderOpts();
+    renderSource();
+    renderChips();
     showAccount('');
   });
   // Close an open ⋯ menu when clicking anywhere else.
@@ -404,6 +434,13 @@ function renderAll() {
     renderGrid();
   });
   $('grid').addEventListener('change', async (e) => {
+    const author = e.target.dataset.kind;
+    if (author !== undefined) {
+      if (e.target.value) data.kindOverrides[author] = e.target.value; else delete data.kindOverrides[author];
+      await chrome.storage.local.set({ accountKinds: data.kindOverrides });
+      renderAll();
+      return;
+    }
     const id = e.target.dataset.pick;
     if (!id) return;
     if (e.target.value) data.postTopics[id] = e.target.value; else delete data.postTopics[id];
@@ -417,6 +454,14 @@ function renderAll() {
     runAi();
   };
   $('grid').addEventListener('click', async (e) => {
+    const q = e.target.closest('.kindq');
+    if (q) {
+      const menu = q.closest('.card').querySelector('details.more');
+      menu.open = true;
+      menu.querySelector('select.kind').focus();
+      e.stopPropagation();
+      return;
+    }
     const who = e.target.closest('.author');
     if (who) { e.preventDefault(); showAccount(who.dataset.author); return; }
     const b = e.target.closest('.star');

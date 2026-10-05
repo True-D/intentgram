@@ -130,6 +130,44 @@ const IntentgramParser = (() => {
     return parseText(text).flatMap(extractPosts);
   }
 
-  return { extractFromText, extractPosts, urlExpiry };
+  // What Instagram says about an account, from any user object it sends: the
+  // author of a feed post, or a profile page you open. Only fields it included.
+  const ACCOUNT_KEYS = ['is_private', 'is_verified', 'account_type', 'is_business_account', 'is_business',
+    'is_professional_account', 'category_name', 'category'];
+  function accountFields(u) {
+    const f = {};
+    const bool = (k, v) => { if (typeof v === 'boolean') f[k] = v; };
+    bool('isPrivate', u.is_private);
+    bool('isVerified', u.is_verified);
+    bool('isBusiness', typeof u.is_business_account === 'boolean' ? u.is_business_account : u.is_business);
+    bool('isProfessional', u.is_professional_account);
+    if (typeof u.account_type === 'number') f.accountType = u.account_type; // 1 personal, 2 business, 3 creator
+    const category = u.category_name || (typeof u.category === 'string' ? u.category : null);
+    if (category) f.category = category;
+    if (u.friendship_status && typeof u.friendship_status.followed_by === 'boolean') f.followedBy = u.friendship_status.followed_by;
+    return f;
+  }
+
+  function extractAccounts(root) {
+    const out = {};
+    const stack = [[root, 0]];
+    while (stack.length) {
+      const [node, depth] = stack.pop();
+      if (!node || typeof node !== 'object' || depth > 60) continue;
+      if (Array.isArray(node)) { for (const v of node) stack.push([v, depth + 1]); continue; }
+      if (typeof node.username === 'string' && (ACCOUNT_KEYS.some((k) => k in node) || node.friendship_status)) {
+        const f = accountFields(node);
+        if (Object.keys(f).length) out[node.username] = { ...out[node.username], ...f };
+      }
+      for (const k in node) stack.push([node[k], depth + 1]);
+    }
+    return out;
+  }
+
+  function accountsFromText(text) {
+    return Object.assign({}, ...parseText(text).map(extractAccounts));
+  }
+
+  return { extractFromText, extractPosts, accountsFromText, urlExpiry };
 })();
 if (typeof module !== 'undefined') module.exports = IntentgramParser;
