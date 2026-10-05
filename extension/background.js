@@ -29,24 +29,32 @@ async function setPaused(paused) {
 
 async function savePosts(posts, source) {
   if (await isPaused()) return;
-  const { posts: stored = {} } = await chrome.storage.local.get('posts');
+  const { posts: stored = {}, adCodes = {} } = await chrome.storage.local.get(['posts', 'adCodes']);
   const now = Date.now();
   for (const p of posts) {
     const prev = stored[p.id];
-    stored[p.id] = { ...prev, ...p, firstSeen: prev ? prev.firstSeen : now, lastSeen: now, source: prev ? prev.source : source };
+    // Once a post is known to be an ad, a later copy without the ad fields doesn't undo it.
+    const isAd = !!(p.isAd || (prev && prev.isAd) || adCodes[p.code]);
+    stored[p.id] = { ...prev, ...p, isAd, firstSeen: prev ? prev.firstSeen : now, lastSeen: now, source: prev ? prev.source : source };
   }
   await chrome.storage.local.set({ posts: stored });
   updateBadge();
   saveImages();
 }
 
-async function saveScreenCodes(codes) {
+async function saveScreenCodes(codes, ads = []) {
   if (await isPaused()) return;
-  const { screenCodes = {} } = await chrome.storage.local.get('screenCodes');
+  const { screenCodes = {}, adCodes = {}, posts = {} } = await chrome.storage.local.get(['screenCodes', 'adCodes', 'posts']);
   const now = Date.now();
   let changed = false;
   for (const c of codes) if (!screenCodes[c]) { screenCodes[c] = now; changed = true; }
   if (changed) await chrome.storage.local.set({ screenCodes });
+  // Posts shown with a "Sponsored" label are ads, whatever the feed data said.
+  const newAds = ads.filter((c) => !adCodes[c]);
+  if (!newAds.length) return;
+  for (const c of newAds) adCodes[c] = now;
+  for (const p of Object.values(posts)) if (newAds.includes(p.code)) p.isAd = true;
+  await chrome.storage.local.set({ adCodes, posts });
 }
 
 // Downloads images not saved yet, one at a time. Links that already expired are skipped.
@@ -74,12 +82,13 @@ async function saveImages() {
 // Removes posts first captured longer ago than the setting, except ★ saved ones.
 async function cleanup() {
   const { keepDays } = await S.settings();
-  const { posts = {}, starred = {}, screenCodes = {} } = await chrome.storage.local.get(['posts', 'starred', 'screenCodes']);
+  const { posts = {}, starred = {}, screenCodes = {}, adCodes = {} } = await chrome.storage.local.get(['posts', 'starred', 'screenCodes', 'adCodes']);
   if (keepDays) {
     const cutoff = Date.now() - keepDays * 864e5;
     for (const [id, p] of Object.entries(posts)) if (!starred[id] && (p.firstSeen || 0) < cutoff) delete posts[id];
     for (const [c, t] of Object.entries(screenCodes)) if (t < cutoff) delete screenCodes[c];
-    await chrome.storage.local.set({ posts, screenCodes });
+    for (const [c, t] of Object.entries(adCodes)) if (t < cutoff) delete adCodes[c];
+    await chrome.storage.local.set({ posts, screenCodes, adCodes });
   }
   const orphans = (await S.imageKeys()).filter((id) => !posts[id]);
   if (orphans.length) await S.deleteImages(orphans);
@@ -143,7 +152,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   }
   const jobs = {
     posts: () => savePosts(msg.posts, msg.source),
-    screen: () => saveScreenCodes(msg.codes),
+    screen: () => saveScreenCodes(msg.codes, msg.adCodes),
     cleanup: () => cleanup().then(saveImages),
     deleteAll: deleteAllExceptStarred,
     pause: () => setPaused(!!msg.paused),

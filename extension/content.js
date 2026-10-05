@@ -7,9 +7,16 @@
     if (posts.length) chrome.runtime.sendMessage({ type: 'posts', posts, source }).catch(() => {});
   }
 
-  function saveScreenCodes(codes) {
-    if (codes.length) chrome.runtime.sendMessage({ type: 'screen', codes }).catch(() => {});
+  function saveScreenCodes(codes, adCodes) {
+    if (codes.length) chrome.runtime.sendMessage({ type: 'screen', codes, adCodes }).catch(() => {});
   }
+
+  // The "Sponsored" label Instagram shows on ads, in the languages people are likely to use.
+  const SPONSORED = new Set(['Sponsored', '贊助', '赞助', '廣告', '广告', '広告', '광고', 'Gesponsert',
+    'Sponsorisé', 'Patrocinado', 'Sponsorizzato', 'Gesponsord', 'Sponsrad', 'Sponset', 'Sponsoreret',
+    'Sponsoroitu', 'Sponsorowane', 'Реклама', 'Sponsorlu', 'ได้รับการสนับสนุน', 'Bersponsor', 'Được tài trợ']);
+  const isSponsored = (article) => [...article.querySelectorAll('span, a, div')]
+    .some((el) => el.childElementCount === 0 && SPONSORED.has(el.textContent.trim()));
 
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
@@ -34,11 +41,17 @@
   function scanScreen() {
     if (location.pathname !== '/') return;
     const codes = new Set();
-    for (const a of document.querySelectorAll('article a[href*="/p/"], article a[href*="/reel/"]')) {
-      const m = a.getAttribute('href').match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
-      if (m) codes.add(m[1]);
+    const adCodes = new Set();
+    for (const article of document.querySelectorAll('article')) {
+      const own = new Set();
+      for (const a of article.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')) {
+        const m = a.getAttribute('href').match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+        if (m) own.add(m[1]);
+      }
+      own.forEach((c) => codes.add(c));
+      if (own.size && isSponsored(article)) own.forEach((c) => adCodes.add(c));
     }
-    saveScreenCodes([...codes]);
+    saveScreenCodes([...codes], [...adCodes]);
   }
 
   let timer = null;
