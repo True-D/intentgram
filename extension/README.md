@@ -186,7 +186,7 @@ Type any area into the Place filter. Posts tagged anywhere inside it are shown.
 
 ## Known limits
 
-- **Desktop Chrome only.** Android (Firefox) and iPhone (Safari) would need a port.
+- **Desktop only.** It runs in Chrome, Firefox and LibreWolf on a computer. Phones would need a port: Firefox for Android, or Safari on iPhone.
 - **Never tested on real Instagram.** All features were tested with a fake Instagram feed. Instagram's internal data format isn't documented and can change at any time. If capture drops to 0, `parser.js` needs updating.
 - **Who you follow.** The Following tab relies on Instagram marking which posts come from accounts you follow. If it doesn't, the extension shows all non-ad posts and says so in Manage.
 - **Rough automatic sorting.** Categories from counting words are approximate. Use the on-device AI button, or fix accounts by hand.
