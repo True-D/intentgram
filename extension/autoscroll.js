@@ -55,7 +55,7 @@ const IntentgramAutoScroll = (() => {
       box = document.createElement('div');
       box.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;max-width:300px;padding:12px 14px;' +
         'border-radius:12px;background:#6b4fd8;color:#fff;font:13px/1.4 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25)';
-      box.innerHTML = '<b>Intentgram auto-scroll</b><div></div><button style="margin-top:8px;padding:4px 10px;border:0;' +
+      box.innerHTML = '<b>Intently auto-scroll</b><div></div><button style="margin-top:8px;padding:4px 10px;border:0;' +
         'border-radius:6px;background:#fff;color:#6b4fd8;font:inherit;cursor:pointer"></button>';
       box.querySelector('button').onclick = () => (run ? stop('Stopped by you.') : (box.remove(), (box = null)));
       document.documentElement.appendChild(box);

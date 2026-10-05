@@ -1,6 +1,6 @@
-# Intentgram — Chrome extension prototype (v0.6.5)
+# Intently — Chrome extension prototype (v0.6.5)
 
-Intentgram lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
+Intently lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
 It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../feasibility-tests.md`.
 
@@ -17,7 +17,7 @@ It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../fe
 1. Download or clone this repository.
 2. In Chrome, open `chrome://extensions` and turn on **Developer mode** (top right).
 3. Click **Load unpacked** and select the `extension` folder.
-4. Pin it: click the puzzle-piece icon, then pin **Intentgram Feed Probe**.
+4. Pin it: click the puzzle-piece icon, then pin **Intently**.
 
 **Updating:** get the new files (for example with `git pull`), then click the reload icon on the extension in `chrome://extensions`. If a version adds new permissions, remove the extension and load it again instead.
 
@@ -25,9 +25,9 @@ It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../fe
 
 Firefox 128 or newer, and browsers based on it like LibreWolf, need their own build.
 
-1. In the repository folder, run `./build-firefox.sh`. It creates `dist/firefox` and `intentgram-firefox.xpi`.
+1. In the repository folder, run `./build-firefox.sh`. It creates `dist/firefox` and `intently-firefox.xpi`.
 2. To try it, open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `dist/firefox/manifest.json`. A temporary add-on is removed when the browser closes.
-3. To keep it installed in LibreWolf: type `about:config` in the address bar and accept the warning. Search for `xpinstall.signatures.required` and click the ⇌ toggle so it reads `false`. Then open `about:addons`, choose **Extensions**, click the gear icon, choose **Install Add-on From File…**, pick `intentgram-firefox.xpi` and click **Add**. Regular Firefox ignores that setting and only installs signed add-ons, which means submitting it to addons.mozilla.org (free).
+3. To keep it installed in LibreWolf: type `about:config` in the address bar and accept the warning. Search for `xpinstall.signatures.required` and click the ⇌ toggle so it reads `false`. Then open `about:addons`, choose **Extensions**, click the gear icon, choose **Install Add-on From File…**, pick `intently-firefox.xpi` and click **Add**. Regular Firefox ignores that setting and only installs signed add-ons, which means submitting it to addons.mozilla.org (free).
 4. If the icon menu shows **Allow access to Instagram**, click it. Firefox can leave site access off until you allow it.
 
 **Updating:** pull the new files, run `./build-firefox.sh` again and install the new `.xpi` the same way.

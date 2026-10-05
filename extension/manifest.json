@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Intentgram Feed Probe",
+  "name": "Intently",
   "version": "0.6.5",
-  "description": "Feasibility prototype: records the Instagram feed posts you scroll past so you can see what data is available.",
+  "description": "Browse your Instagram feed by topic, place, time and account. Unofficial; not affiliated with Instagram or Meta.",
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -13,7 +13,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Intentgram Feed Probe",
+    "default_title": "Intently",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
