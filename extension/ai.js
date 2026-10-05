@@ -61,9 +61,9 @@ const IntentgramAI = (() => {
     ['Social issues', 'activism, a protest, human rights, climate change, equality, 社會議題, 人權, 環境, 平權'],
     ['Tech', 'technology, a gadget, a computer, software, AI, 科技, 程式, 人工智慧'],
     ['Science & learning', 'science, history, education, explainers, facts, 科學, 歷史, 知識, 教育'],
-    ['Business & career', 'business, startups, work, career advice, entrepreneurship, 創業, 職場, 工作'],
+    ['Business & career', 'business, startups, work, career advice, entrepreneurship, hiring, a job opening, 創業, 職場, 工作, 徵才, 職缺'],
     ['Money & investing', 'money, investing, stocks, personal finance, 理財, 投資, 股票'],
-    ['Open calls', 'an open call, an artist residency, an application deadline, submissions, a grant, 徵件, 駐村, 截止, 報名, 徵選'],
+    ['Open calls', 'open call, call for artists, an artist residency, an application deadline, submissions, a grant, 徵件, 駐村, 截止, 報名, 徵選'],
     ['Events & workshops', 'a workshop, a talk, a market, an event poster, tickets, 工作坊, 講座, 市集, 活動'],
     ['Shopping', 'a product for sale, a new collection, a discount, a shop, 購物, 新品, 折扣, 開箱'],
     ['Cars & motorbikes', 'a car, a motorcycle, a scooter, 汽車, 機車, 重機'],
@@ -167,11 +167,24 @@ const IntentgramAI = (() => {
     return s.length ? Math.max(...s) : 0;
   }
 
+  // Words of a topic's description that appear as-is in a post's text count extra:
+  // the text model sometimes misses an exact word (陶藝, open call) in a longer caption.
+  // English words must match whole; Chinese/Japanese ones just appear.
+  const LITERAL = 0.05;
+  function literals(list) {
+    return list.map((t) => phrases(t).txt.map((w) => w.toLowerCase()).filter((w) => (/[\u3040-\u9fff]/.test(w) ? w.length >= 2 : w.length >= 3)));
+  }
+  const escRe = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function literalHit(text, words) {
+    return words.some((w) => (/[\u3040-\u9fff]/.test(w) ? text.includes(w) : new RegExp(`(^|[^a-z])${escRe(w)}([^a-z]|$)`).test(text)));
+  }
+
   // labels: Map post id -> topic the user picked (directly, or via the account).
   // Returns Map post id -> { topic, sure, parts } for posts that have vectors.
   function assign(posts, prepared, labels) {
     const { list, vectors, topicVecs } = prepared;
     const names = list.map((t) => t.name);
+    const lits = literals(list);
     const byId = new Map(posts.map((p) => [p.id, p]));
     const examples = [...labels].map(([id, topic]) => ({ id, topic, v: vectors.get(id), author: byId.get(id) && byId.get(id).author }))
       .filter((x) => x.v && names.includes(x.topic));
@@ -183,7 +196,10 @@ const IntentgramAI = (() => {
       const parts = [];
       const best = (x, vs) => Math.max(...vs.map((t) => dot(x, t)));
       if (v.img) parts.push([softmax(topicVecs.img.map((vs) => best(v.img, vs)), 100), (p.caption || '').length < 20 ? 3 : 1]);
-      if (v.txt) parts.push([softmax(topicVecs.txt.map((vs) => best(v.txt, vs)), 100), 1]);
+      if (v.txt) {
+        const text = postText(p).toLowerCase();
+        parts.push([softmax(topicVecs.txt.map((vs, i) => best(v.txt, vs) + (literalHit(text, lits[i]) ? LITERAL : 0)), 100), 1]);
+      }
       let probs = names.map(() => 0);
       if (parts.length) {
         const w = parts.reduce((a, [, x]) => a + x, 0);
@@ -206,5 +222,5 @@ const IntentgramAI = (() => {
     return out;
   }
 
-  return { DEFAULT_TOPICS, OTHER, UNSURE, topics, prepare, assign };
+  return { DEFAULT_TOPICS, OTHER, UNSURE, topics, prepare, assign, _test: { phrases, literals, literalHit, LITERAL } };
 })();
