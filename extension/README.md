@@ -1,4 +1,4 @@
-# Intently — Chrome extension prototype (v0.6.5)
+# Intently — Chrome extension prototype (v0.6.6)
 
 Intently lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -79,7 +79,7 @@ The top row holds everything you need most: the **Following / Suggested / Ads / 
 The tabs choose which posts the whole page shows, each with a count:
 - **Following** (default): posts from accounts you follow
 - **Suggested**: posts Instagram added from accounts you don't follow
-- **Ads**: sponsored posts
+- **Ads**: sponsored posts. A post counts as an ad if Instagram's feed data marks it as one, or if it showed a "Sponsored" label on the page. Ads already collected as Suggested move here once you scroll past them again.
 - **All**: everything captured, matching the number in the icon menu
 
 Categories and their counts follow the selected tab.

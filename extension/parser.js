@@ -92,27 +92,36 @@ const IntentgramParser = (() => {
       thumb,
       video,
       mediaExpiresAt: urlExpiry(image),
-      isAd: !!(n.ad_id || n.injected || n.ad_action || n.is_ad),
+      isAd: hasAdMarker(n),
       isPaidPartnership: !!n.is_paid_partnership,
       likeCount: n.like_count ?? (n.edge_media_preview_like && n.edge_media_preview_like.count) ?? null,
       commentCount: n.comment_count ?? null,
     };
   }
 
+  // Ad fields can sit on the post itself or on the feed item wrapping it
+  // (e.g. a timeline edge with an `ad` object next to the media).
+  function hasAdMarker(n) {
+    return !!(n.ad_id || n.injected || n.ad_action || n.is_ad || n.ad_metadata ||
+      n.ad_header_style || (n.ad && typeof n.ad === 'object'));
+  }
+
   function extractPosts(root) {
     const out = [];
     const seen = new Set();
-    const stack = [[root, 0]];
+    const stack = [[root, 0, false]];
     while (stack.length) {
-      const [node, depth] = stack.pop();
+      const [node, depth, inAd] = stack.pop();
       if (!node || typeof node !== 'object' || depth > 60) continue;
-      if (Array.isArray(node)) { for (const v of node) stack.push([v, depth + 1]); continue; }
+      if (Array.isArray(node)) { for (const v of node) stack.push([v, depth + 1, inAd]); continue; }
       if (isMedia(node)) {
         const p = normalize(node);
+        if (inAd) p.isAd = true;
         if (p.code && !seen.has(p.id)) { seen.add(p.id); out.push(p); }
         continue; // carousel children are part of this post, not separate posts
       }
-      for (const k in node) stack.push([node[k], depth + 1]);
+      const ad = inAd || hasAdMarker(node);
+      for (const k in node) stack.push([node[k], depth + 1, ad]);
     }
     return out;
   }
