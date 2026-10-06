@@ -4,14 +4,14 @@ Context for Claude (or anyone) continuing work on this repo.
 
 ## What this is
 
-**Intently** is a browser extension (Chrome, Firefox 128+, LibreWolf) that collects the posts in your own Instagram home feed and lets you browse them by topic, place, time and account instead of the algorithm's order. Sorting runs with on-device AI. It's a private prototype by t (GitHub `True-D`) that also serves as a feasibility test (`feasibility-tests.md`, `spec.md`).
+**Intently** is a browser extension (Chrome, Firefox 128+, LibreWolf) that collects the posts in your own Instagram home feed and lets you browse them by topic, place, time and account instead of the algorithm's order. Sorting runs with on-device AI. It's a prototype by t (GitHub `True-D`) that also serves as a feasibility test (`feasibility-tests.md`, `spec.md`).
 
 - User-facing docs: `README.md` (overview, install) and `extension/README.md` (every feature in detail, plus a file table). Read the extension README before changing behavior.
 - Current version: see `"version"` in `extension/manifest.json`.
 
 ### Naming: renamed from Intentgram, ids kept on purpose
 
-The product was renamed from Intentgram to Intently (2026-10-05) because Instagram's brand rules forbid "gram"/"insta" in third-party app names, which would risk a Web Store takedown. Only user-visible names changed. Keep these two as they are:
+The product was renamed from Intentgram to Intently (2026-10-05) because Instagram's brand rules forbid "gram"/"insta" in third-party app names, a takedown risk if it's ever published. Only user-visible names changed. Keep these two as they are:
 
 - The Firefox add-on id `intentgram@true-d` (`extension/manifest.firefox.json`). Changing it makes Firefox treat it as a new add-on, so existing Firefox installs lose all their data.
 - The IndexedDB name `intentgram` (`extension/store.js`). It holds the saved photo copies in every browser; renaming it loses them (posts live in `chrome.storage.local` and are unaffected).
@@ -51,8 +51,6 @@ There's no build step or test suite for Chrome.
 
 ## Open work
 
-- **Chrome Web Store listing**, Private visibility, shared with friends' emails. Store screenshots are in `store-assets/` (some still show the old name). Icon is t's penguin cookie photo (`extension/icons/`).
-- **Privacy policy:** `privacy-site/index.html` needs a real contact email in place of `CONTACT_EMAIL`, and it must be hosted in a separate public repo (GitHub Pages), since this repo is private.
 - **Auto-scroll opt-in (waiting on t):** proposal to hide auto-scroll behind an opt-in toggle in Manage with a risk warning, since Instagram's terms don't allow automated collection. Not built.
 - **Stale branches** on GitHub (`feed-topics`, `subtopics`, `firefox`, `pause-collecting`, `more-topics`): delete only when t says so.
 
