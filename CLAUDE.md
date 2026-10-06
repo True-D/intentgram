@@ -52,7 +52,6 @@ There's no build step or test suite for Chrome.
 ## Open work
 
 - **Auto-scroll opt-in (waiting on t):** proposal to hide auto-scroll behind an opt-in toggle in Manage with a risk warning, since Instagram's terms don't allow automated collection. Not built.
-- **Stale branches** on GitHub (`feed-topics`, `subtopics`, `firefox`, `pause-collecting`, `more-topics`): delete only when t says so.
 
 ## Working conventions
 
