@@ -51,6 +51,19 @@ const IntentgramGeo = (() => {
     });
   }
 
+  // Resolve a free-text event venue to a country without needing tagged coordinates.
+  async function geocodeVenue(name) {
+    const q = String(name || '').trim();
+    if (!q) return null;
+    const r = await fetch(`${API}/api/?q=${encodeURIComponent(q)}&limit=5&lang=en`);
+    if (!r.ok) throw new Error('venue search ' + r.status);
+    const features = (await r.json()).features || [];
+    const matches = features.filter((feature) => feature.properties?.country);
+    if (!matches.length) return null;
+    const country = matches[0].properties.country;
+    return matches[1] && matches[1].properties.country !== country ? null : { country };
+  }
+
   const inBox = (b, lat, lng) => lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng;
 
   // `areas` are the looked-up district/city/state/country; `names` adds Instagram's own text.
@@ -65,5 +78,5 @@ const IntentgramGeo = (() => {
     return { names: [...names, ...areas], areas, known: !!geo };
   }
 
-  return { enrich, search, inBox, areasOf, key };
+  return { enrich, search, geocodeVenue, inBox, areasOf, key };
 })();

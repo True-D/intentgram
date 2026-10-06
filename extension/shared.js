@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const norm = (t) => String(t).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').trim();
 const fmtTime = (ms) => (ms ? new Date(ms).toLocaleString() : '–');
 
-const KEYS = ['posts', 'screenCodes', 'accountTopics', 'aiTopics', 'aiEvents', 'geoCache', 'starred', 'topics', 'postTopics', 'aiPostTopics', 'aiPostGuesses', 'accountInfo', 'accountKinds'];
+const KEYS = ['posts', 'screenCodes', 'accountTopics', 'aiTopics', 'aiEvents', 'geoCache', 'eventVenueCache', 'starred', 'topics', 'postTopics', 'aiPostTopics', 'aiPostGuesses', 'accountInfo', 'accountKinds'];
 
 async function loadData() {
   const d = await chrome.storage.local.get(KEYS);
@@ -15,6 +15,7 @@ async function loadData() {
     aiTopics: d.aiTopics || {},       // author -> category from Chrome's on-device model
     aiEvents: d.aiEvents || {},       // post id -> event details from the on-device model
     geoCache: d.geoCache || {},
+    eventVenueCache: d.eventVenueCache || {}, // normalized venue -> country from Photon
     starred: d.starred || {},         // post id -> true, kept forever
     topics: Array.isArray(d.topics) && d.topics.length ? d.topics : IntentgramAI.DEFAULT_TOPICS, // [{ name, hint }]
     postTopics: d.postTopics || {},   // post id -> category the user picked for that post

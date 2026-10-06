@@ -8,7 +8,7 @@ It's also a feasibility test. It answers tests #1b, #2, #4, #5 and #11 in `../fe
 
 - **Capture.** It reads the feed data instagram.com already downloads for itself: the first batch built into the page, plus each new batch as you scroll. It makes no extra requests to Instagram.
 - **Storage.** Posts, settings and saved images stay in the extension's storage on this computer.
-- **What leaves your computer.** Only place lookups (see Place search) go to Photon, a free OpenStreetMap service. They send map coordinates and the place you type, never posts or account names.
+- **What leaves your computer.** Place lookups go to Photon, a free OpenStreetMap service. They send map coordinates, the place you type, or an event venue name extracted from a caption. Full captions and account names are never sent.
 - **Downloads.** With AI sorting on, the AI models download once from Hugging Face. Nothing about your posts is sent; the models run on this computer.
 - **Capturing needs scrolling.** It only sees posts Instagram has loaded, so scroll your home feed to collect more, or let auto-scroll do it (see Auto-scroll).
 
@@ -162,6 +162,8 @@ Each event card shows a summary:
 
 The Events category lists upcoming events first, soonest at the top. Detection is pattern-based, so some events will be missed or wrongly flagged. The on-device AI button re-reads possible events for more accurate details.
 
+When an event venue has a name but no tagged map coordinates, Intently looks up that venue name with Photon and adds the returned country to the event card. The original venue text is kept; lookups that return no country leave it unchanged.
+
 ## Place search
 
 Type any area into the Place filter. Posts tagged anywhere inside it are shown.
@@ -170,7 +172,7 @@ Type any area into the Place filter. Posts tagged anywhere inside it are shown.
 - **Matching:** "Taiwan" finds posts in Taipei, Jiufen and Kaohsiung. "Taipei" finds Taipei City but not New Taipei. "Xinyi" finds Xinyi District.
 - **Suggestions:** while you type, it suggests areas that have posts, with counts, plus matching areas from the map.
 - **Before a place is looked up:** it's matched by the area's rectangle on the map instead.
-- **Untagged posts:** posts without a tagged place can't be found by place, which is common for Reels.
+- **Untagged posts:** ordinary posts without a tagged place can't be found by place, which is common for Reels. Event posts with an extracted venue can also match that venue or its looked-up country.
 
 ## Manage
 

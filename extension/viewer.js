@@ -14,11 +14,15 @@ function placeMatch(p, raw) {
   const picked = remote.find((r) => r.label === raw);
   const q = norm(picked ? picked.name : raw);
   const { names, areas, known } = G.areasOf(p, data.geoCache);
+  const venue = p.event?.venue;
+  const venueCountry = venue && data.eventVenueCache[venueCacheKey(venue)]?.country;
   // Looked-up areas must start with the text as a whole word ("Xinyi" finds
   // "Xinyi District", but "Taipei" doesn't find "New Taipei");
   // Instagram's free-text place names only need to contain the text.
   if (areas.some((n) => norm(n) === q || norm(n).startsWith(q + ' '))) return true;
   if (names.filter((n) => !areas.includes(n)).some((n) => norm(n).includes(q))) return true;
+  if (venue && norm(venue).includes(q)) return true;
+  if (venueCountry && (norm(venueCountry) === q || norm(venueCountry).startsWith(q + ' '))) return true;
   const area = picked || remote[0];
   return !!(area && !known && p.place && p.place.lat != null && G.inBox(area.box, p.place.lat, p.place.lng));
 }
@@ -28,6 +32,13 @@ function placeLine(p) {
   const geo = pl && pl.lat != null && data.geoCache[G.key(pl.lat, pl.lng)];
   const area = geo ? [geo.city || geo.county || geo.state, geo.country].filter(Boolean).join(', ') : (pl && pl.city) || '';
   return [p.location, area].filter(Boolean).join(' · ');
+}
+
+const venueCacheKey = (venue) => norm(venue).replace(/\s+/g, ' ');
+function eventVenueLabel(venue) {
+  const country = data.eventVenueCache[venueCacheKey(venue)]?.country;
+  if (!country || String(venue).split(',').some((part) => norm(part) === norm(country))) return venue;
+  return `${venue}, ${country}`;
 }
 
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); }
@@ -65,7 +76,7 @@ function eventBox(e) {
     : esc(e.tickets || '');
   const lines = [
     when && `🗓 ${esc(when)}`,
-    e.venue && `📍 ${esc(e.venue)}`,
+    e.venue && `📍 ${esc(eventVenueLabel(e.venue))}`,
     e.performers && e.performers.length && `🎤 ${esc(e.performers.join(', '))}`,
     (e.price || tickets) && `🎟 ${[esc(e.price || ''), tickets].filter(Boolean).join(' · ')}`,
   ].filter(Boolean).map((l) => `<div>${l}</div>`).join('');
@@ -334,7 +345,15 @@ function renderChips() {
 // Suggestions: every area that has posts (with counts), then matches from the map.
 function renderLocations() {
   const counts = {};
-  for (const p of data.all) for (const n of new Set(G.areasOf(p, data.geoCache).names)) counts[n] = (counts[n] || 0) + 1;
+  for (const p of data.all) {
+    const names = G.areasOf(p, data.geoCache).names;
+    if (p.event?.venue) {
+      names.push(p.event.venue);
+      const country = data.eventVenueCache[venueCacheKey(p.event.venue)]?.country;
+      if (country) names.push(country, eventVenueLabel(p.event.venue));
+    }
+    for (const n of new Set(names)) counts[n] = (counts[n] || 0) + 1;
+  }
   const local = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([n, c]) => `<option value="${esc(n)}" label="${c} post${c > 1 ? 's' : ''}"></option>`);
   const fromMap = remote.filter((r) => !counts[r.label])
@@ -367,6 +386,32 @@ async function lookUpPlaces() {
     if (done % 5 === 0 || done === total) { chrome.storage.local.set({ geoCache: data.geoCache }); renderLocations(); renderGrid(); }
   });
   if (n) { await chrome.storage.local.set({ geoCache: data.geoCache }); $('locNote').textContent = ''; renderLocations(); renderGrid(); }
+}
+
+async function lookUpEventVenues() {
+  const todo = new Map();
+  for (const p of data.all) {
+    const venue = p.event?.venue;
+    if (!venue || (p.place && p.place.lat != null && p.place.lng != null)) continue;
+    const key = venueCacheKey(venue);
+    if (data.eventVenueCache[key] === undefined) todo.set(key, venue);
+  }
+  let done = 0;
+  for (const [key, venue] of todo) {
+    $('locNote').textContent = `Looking up event venues: ${done + 1} of ${todo.size}…`;
+    try { data.eventVenueCache[key] = await G.geocodeVenue(venue); } catch (e) {
+      console.warn('[intentgram] event venue lookup failed', e);
+    }
+    done++;
+    if (done % 5 === 0 || done === todo.size) await chrome.storage.local.set({ eventVenueCache: data.eventVenueCache });
+    if (done < todo.size) await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  if (todo.size) {
+    await chrome.storage.local.set({ eventVenueCache: data.eventVenueCache });
+    $('locNote').textContent = '';
+    renderLocations();
+    renderGrid();
+  }
 }
 
 // Typing "@" in the search box suggests accounts from the current tab, matching the
@@ -547,6 +592,6 @@ function renderAll() {
     renderChips();
     renderGrid();
   });
-  lookUpPlaces();
+  lookUpPlaces().then(lookUpEventVenues);
   runAi();
 })();
