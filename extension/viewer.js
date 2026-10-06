@@ -187,6 +187,7 @@ function renderGrid() {
             <div class="muted">${esc(p.type)}${p.slides > 1 ? ' · ' + p.slides + ' slides' : ''} · posted ${esc(fmtTime(p.takenAt))}</div>
             ${p.location ? `<div class="muted">📍 ${esc(placeLine(p))}</div>` : ''}
             <a href="${esc(p.permalink)}" target="_blank" rel="noopener">Open on Instagram ↗</a>
+            <button class="plain danger del" data-del="${esc(p.id)}">Delete post</button>
           </div></details></div>
         ${eventBox(p.event)}
         ${p.caption ? `<div class="cap">${esc(p.caption)}</div>` : ''}
@@ -475,6 +476,14 @@ function renderAll() {
     renderChips();
     showAccount('');
   });
+  // Open a ⋯ menu upward when there isn't room for it below.
+  $('grid').addEventListener('toggle', (e) => {
+    const menu = e.target.matches('details.more') && e.target.open && e.target.querySelector('.menu');
+    if (!menu) return;
+    menu.classList.remove('up');
+    const r = menu.getBoundingClientRect();
+    if (r.bottom > innerHeight && r.top - r.height - 30 > 0) menu.classList.add('up');
+  }, true);
   // Close an open ⋯ menu when clicking anywhere else.
   document.addEventListener('click', (e) => {
     for (const d of document.querySelectorAll('details.more[open]')) if (!d.contains(e.target)) d.open = false;
@@ -520,6 +529,15 @@ function renderAll() {
       return;
     }
     if (e.target.id === 'acctInAll') { setSource(''); return; }
+    const del = e.target.closest('.del');
+    if (del) {
+      const id = del.dataset.del;
+      await chrome.runtime.sendMessage({ type: 'deletePost', id });
+      data.all = data.all.filter((p) => p.id !== id);
+      for (const k of ['starred', 'postTopics', 'aiPostTopics', 'aiPostGuesses', 'aiEvents']) delete data[k][id];
+      renderAll();
+      return;
+    }
     const who = e.target.closest('.author');
     if (who) { e.preventDefault(); showAccount(who.dataset.author); return; }
     const b = e.target.closest('.star');

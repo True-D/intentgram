@@ -1,4 +1,4 @@
-# Intently — Chrome extension prototype (v0.6.8)
+# Intently — Chrome extension prototype (v0.6.10)
 
 Intently lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -120,7 +120,7 @@ Active filters show as pills above the posts, like `Last 7 days ✕`; click one 
 - Each card shows the picture, the @account, the first 3 lines of the caption and one grey line with the category, how long ago it was posted and the place. Events get a summary box.
 - Suggested posts and ads carry a **Suggested** or **Ad** badge on the picture; in All, creator and brand posts carry their own badge.
 - **★** saves the post forever. Click it again to unsave.
-- **⋯** has the category menu, the friend or creator menu, the type, the full date and place, and **Open on Instagram**.
+- **⋯** has the category menu, the friend or creator menu, the type, the full date and place, **Open on Instagram**, and **Delete post**, which removes the post and its saved photo right away (even if starred). Scrolling past it on Instagram again will collect it again.
 
 ## How categories are chosen
 
