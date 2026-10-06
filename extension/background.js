@@ -119,6 +119,17 @@ async function deleteAllExceptStarred() {
   await cleanup();
 }
 
+// Deletes one post and everything kept about it, starred or not.
+async function deletePost(id) {
+  const keys = ['posts', 'starred', 'postTopics', 'aiPostTopics', 'aiPostGuesses', 'aiEvents'];
+  const d = await chrome.storage.local.get(keys);
+  for (const k of keys) if (d[k]) delete d[k][id];
+  await chrome.storage.local.set(d);
+  await S.deleteImages([id]);
+  await S.deleteVectors([id]);
+  updateBadge();
+}
+
 // Auto-scroll runs in the user's own Instagram tab: reuse the active one if it's
 // Instagram, otherwise open the home feed in a new tab.
 const HOME = 'https://www.instagram.com/';
@@ -171,6 +182,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     accounts: () => saveAccounts(msg.accounts),
     cleanup: () => cleanup().then(saveImages),
     deleteAll: deleteAllExceptStarred,
+    deletePost: () => deletePost(msg.id),
     pause: () => setPaused(!!msg.paused),
   };
   if (!jobs[msg.type]) return false;
