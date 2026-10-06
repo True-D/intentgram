@@ -11,12 +11,12 @@ Context for Claude (or anyone) continuing work on this repo.
 
 ### Naming: renamed from Intentgram, ids kept on purpose
 
-The product was renamed from Intentgram to Intently (2026-10-05) because Instagram's brand rules forbid "gram"/"insta" in third-party app names, which would risk a Web Store takedown. Only user-visible names changed. Keep these as they are, or existing installs lose their data:
+The product was renamed from Intentgram to Intently (2026-10-05) because Instagram's brand rules forbid "gram"/"insta" in third-party app names, which would risk a Web Store takedown. Only user-visible names changed. Keep these two as they are:
 
-- JS identifiers (`Intentgram*`) and `[intentgram]` log prefixes
-- The IndexedDB name `intentgram` (`extension/store.js`)
-- The Firefox add-on id `intentgram@true-d` (`extension/manifest.firefox.json`)
-- The repo name `intentgram`
+- The Firefox add-on id `intentgram@true-d` (`extension/manifest.firefox.json`). Changing it makes Firefox treat it as a new add-on, so existing Firefox installs lose all their data.
+- The IndexedDB name `intentgram` (`extension/store.js`). It holds the saved photo copies in every browser; renaming it loses them (posts live in `chrome.storage.local` and are unaffected).
+
+JS identifiers (`Intentgram*`), `[intentgram]` log prefixes and the repo name are invisible to users and safe to rename, but there's no need to.
 
 ## Architecture
 
