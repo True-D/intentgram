@@ -1,4 +1,4 @@
-# Intently — Chrome extension prototype (v0.6.10)
+# Intently — Chrome extension prototype (v0.6.11)
 
 Intently lets you browse your Instagram feed by intent: by topic, place, time or account instead of the algorithm's order. This prototype is a Chrome extension. It collects the posts in your home feed as you scroll, sorts them into categories, and lets you filter, save and review them on your own computer.
 
@@ -74,13 +74,15 @@ The icon menu shows the result of the last run.
 
 The top row holds everything you need most: the **Friends / Creators & brands / Suggested / All** tabs, a **search** box, a **Filters** button and **Manage**. Categories sit in a sidebar on the left, and the posts fill the rest. On a narrow window the tabs and categories become single rows you scroll sideways.
 
+The page opens on **All** with every category. Click the **Intently** logo at any time to go back to that start: the All tab, every category, no search and no filters. On Manage, the logo goes back to the feed page.
+
 ### Friends, Creators & brands, Suggested
 
 The tabs choose which posts the whole page shows, each with a count:
-- **Friends** (default): posts from personal accounts you follow
+- **Friends**: posts from personal accounts you follow
 - **Creators & brands**: posts from creator and business accounts you follow
 - **Suggested**: posts Instagram added from accounts you don't follow
-- **All**: everything captured
+- **All** (default): everything captured
 
 Ads are hidden. Turn on **Show ads** in Filters to see them under Suggested and All. A post counts as an ad if Instagram's feed data marks it as one, or if it showed a "Sponsored" label on the page.
 
@@ -102,6 +104,7 @@ In the All tab, creator and brand posts carry a **Creator**, **Brand** or **Crea
 - **All**, **📅 Events** (posts that announce an event, see Events) and **★ Saved** come first, then your topics, largest first, then **Other**.
 - The 8 largest topics show at first; **Show more** lists the rest.
 - Each post gets a category (see How categories are chosen). Change it in the post's **⋯** menu, or set a whole account's category in Manage.
+- **📅 Events** adds a row of time options above the posts: **Upcoming** (the default), **This week**, **This weekend**, **Next month** and **All events** (also past and undated ones). See Events.
 
 ### Search and filters
 
@@ -120,7 +123,7 @@ Active filters show as pills above the posts, like `Last 7 days ✕`; click one 
 - Each card shows the picture, the @account, the first 3 lines of the caption and one grey line with the category, how long ago it was posted and the place. Events get a summary box.
 - Suggested posts and ads carry a **Suggested** or **Ad** badge on the picture; in All, creator and brand posts carry their own badge.
 - **★** saves the post forever. Click it again to unsave.
-- **⋯** has the category menu, the friend or creator menu, the type, the full date and place, **Open on Instagram**, and **Delete post**, which removes the post and its saved photo right away (even if starred). Scrolling past it on Instagram again will collect it again.
+- **⋯** has the category search box (click it, type a few letters like `cof`, then click a topic or press Enter; **Automatic** undoes your choice), the friend or creator menu, the type, the full date and place, **Open on Instagram**, and **Delete post**, which removes the post and its saved photo right away (even if starred). Scrolling past it on Instagram again will collect it again.
 
 ## How categories are chosen
 
@@ -160,7 +163,16 @@ Each event card shows a summary:
 - 🎟 **Price and tickets**, for example NT$800, 600元起, Free entry, a ticket link, or "Link in bio"
 - An **Upcoming** or **Past** label
 
-The Events category lists upcoming events first, soonest at the top. Detection is pattern-based, so some events will be missed or wrongly flagged. The on-device AI button re-reads possible events for more accurate details.
+The Events category lists upcoming events, soonest at the top. The options above the posts narrow it by when the event starts, in your computer's time zone:
+
+| Option | Shows events starting |
+|---|---|
+| **Upcoming** (default) | today or later |
+| **This week** | from today through Sunday |
+| **This weekend** | this Saturday and Sunday (only the days not yet over) |
+| **Next month** | in the next calendar month, for example all of November when it's October |
+| **All events** | any time, including past events and ones without a date, upcoming first |
+ Detection is pattern-based, so some events will be missed or wrongly flagged. The on-device AI button re-reads possible events for more accurate details.
 
 When an event venue has a name but no tagged map coordinates, Intently looks up that venue name with Photon and adds the returned country to the event card. The original venue text is kept; lookups that return no country leave it unchanged.
 

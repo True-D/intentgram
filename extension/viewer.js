@@ -83,6 +83,27 @@ function eventBox(e) {
   return `<div class="event"><div class="event-h">Event ${status}</div>${lines}</div>`;
 }
 
+// Under 📅 Events, a row of options picks which events show, in your local time.
+// Weeks run Monday to Sunday. "Next month" is the calendar month after this one.
+const EV_WHENS = [['upcoming', 'Upcoming'], ['week', 'This week'], ['weekend', 'This weekend'], ['month', 'Next month'], ['', 'All events']];
+function eventRange(v, now = new Date()) {
+  const day = (y, m, d) => new Date(y, m, d).getTime();
+  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  const today = day(y, m, d);
+  const nextMonday = day(y, m, d + ((8 - now.getDay()) % 7 || 7));
+  if (v === 'upcoming') return [today, Infinity];
+  if (v === 'week') return [today, nextMonday];
+  if (v === 'weekend') return [Math.max(today, day(y, m, d + ((8 - now.getDay()) % 7 || 7) - 2)), nextMonday];
+  if (v === 'month') return [day(y, m + 1, 1), day(y, m + 2, 1)];
+  return null;
+}
+function renderEvWhen() {
+  const v = optVal('evWhen');
+  $('evWhen').classList.toggle('hidden', activeTopic !== '__events');
+  $('evWhen').innerHTML = EV_WHENS.map(([k, label]) =>
+    `<button class="opt${k === v ? ' on' : ''}" data-v="${k}" aria-pressed="${k === v}">${label}</button>`).join('');
+}
+
 // Events: upcoming soonest first, then undated, then past (most recent first).
 function eventOrder(a, b) {
   const now = Date.now() - 864e5;
@@ -97,10 +118,10 @@ function isFollowed(p) {
   return !p.isAd;
 }
 
-// Which posts the whole page shows: friends you follow (the default), creators and
-// businesses you follow, suggested by Instagram, or all of them. Ads are hidden
+// Which posts the whole page shows: friends you follow, creators and businesses
+// you follow, suggested by Instagram, or all of them (the default). Ads are hidden
 // unless "Show ads" is on in Filters; then they appear under Suggested and All.
-let source = 'friend';
+let source = '';
 let showAds = false;
 const SOURCES = [
   ['friend', 'Friends', 'Personal accounts you follow'],
@@ -168,9 +189,12 @@ function renderGrid() {
   const q = typedAt === null ? raw : '';
   const loc = $('loc').value.trim();
   const range = timeRange();
+  const evRange = activeTopic === '__events' && eventRange(optVal('evWhen'));
+  const evLabel = optVal('evWhen') && EV_WHENS.find(([k]) => k === optVal('evWhen'))[1];
   let list = all.filter((p) =>
     (!activeTopic || (activeTopic === '__events' ? !!p.event : activeTopic === '__saved' ? !!data.starred[p.id] : p.topic === activeTopic)) &&
     (!range || (p.takenAt && p.takenAt >= range[0] && p.takenAt < range[1])) &&
+    (!evRange || (p.event.startsAt && p.event.startsAt >= evRange[0] && p.event.startsAt < evRange[1])) &&
     (!loc || placeMatch(p, loc)) &&
     (!activeAccount || (accountPrefix ? (p.author || '').toLowerCase().startsWith(activeAccount) : p.author === activeAccount)) &&
     (!typedAt || (p.author || '').toLowerCase().startsWith(typedAt)) &&
@@ -207,10 +231,11 @@ function renderGrid() {
   }).join('') || `<div class="muted empty">${!all.length ? 'No posts yet. Open instagram.com and scroll your home feed.'
     : activeAccount && !accountPrefix && source && all.some((p) => p.author === activeAccount)
       ? `@${esc(activeAccount)} has no posts in this tab. <button class="link" id="acctInAll">Show in All</button>`
+      : activeTopic === '__events' && optVal('evWhen') ? `No ${esc(evLabel.toLowerCase())} events. <button class="link" id="allEvents">Show all events</button>`
       : 'No posts match these filters.'}</div>`;
 
   // One quiet status line: what you're looking at, the active filters, the count.
-  const label = activeTopic === '__events' ? 'Events' : activeTopic === '__saved' ? '★ Saved' : activeTopic;
+  const label = activeTopic === '__events' ? 'Events' + (evLabel ? ' · ' + evLabel : '') : activeTopic === '__saved' ? '★ Saved' : activeTopic;
   const filters = activeFilters();
   $('pills').innerHTML = filters.map(([k, text]) =>
     `<button class="pill" data-k="${k}" title="Remove this filter">${esc(text)} <span aria-hidden="true">✕</span></button>`).join('');
@@ -221,13 +246,46 @@ function renderGrid() {
   loadImages(list);
 }
 
-// Each post's category is a menu, so it can be corrected right on the card.
+// Each post's category is a search box, so it can be corrected right on the card:
+// type a few letters to narrow the topic list, then click one or press Enter.
 function topicPicker(p) {
   const mine = !!data.postTopics[p.id];
+  return `<span class="tpick" data-post="${esc(p.id)}"><input class="tag topic${mine ? ' mine' : ''}" value="${esc(p.topic)}" data-topic="${esc(p.topic)}"` +
+    ` role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off" spellcheck="false"` +
+    ` placeholder="Search categories" title="${mine ? 'You chose this category' : 'Change this post\'s category'}"><span class="tlist hidden" role="listbox"></span></span>`;
+}
+
+let tAt = 0; // highlighted row in the open category list
+function topicChoices(input) {
+  const id = input.closest('.tpick').dataset.post;
+  const q = norm(input.value === input.dataset.topic ? '' : input.value);
   const names = [...data.topics.map((t) => t.name), IntentgramClassifier.OTHER];
-  return `<select class="tag topic${mine ? ' mine' : ''}" data-pick="${esc(p.id)}" title="${mine ? 'You chose this category' : 'Change this post\'s category'}">` +
-    (mine ? '<option value="">Automatic</option>' : '') +
-    names.map((n) => `<option${n === p.topic ? ' selected' : ''}>${esc(n)}</option>`).join('') + '</select>';
+  const out = names.filter((n) => !q || norm(n).includes(q))
+    .sort((a, b) => (q ? norm(b).startsWith(q) - norm(a).startsWith(q) : 0))
+    .map((n) => [n, n]);
+  if (data.postTopics[id] && (!q || 'automatic'.includes(q))) out.unshift(['', 'Automatic']);
+  return out;
+}
+function renderTopicList(input) {
+  const list = input.closest('.tpick').querySelector('.tlist');
+  const choices = topicChoices(input);
+  tAt = Math.max(0, Math.min(tAt, choices.length - 1));
+  list.innerHTML = choices.map(([v, label], i) =>
+    `<button class="sug${i === tAt ? ' on' : ''}${v === input.dataset.topic ? ' cur' : ''}" role="option" aria-selected="${i === tAt}" data-v="${esc(v)}" tabindex="-1">${esc(label)}</button>`).join('') ||
+    '<span class="muted none">No category matches.</span>';
+  list.classList.remove('hidden');
+  input.setAttribute('aria-expanded', 'true');
+  list.querySelector('.sug.on')?.scrollIntoView({ block: 'nearest' });
+}
+function closeTopicList(input) {
+  input.closest('.tpick').querySelector('.tlist').classList.add('hidden');
+  input.setAttribute('aria-expanded', 'false');
+}
+async function setPostTopic(id, topic) {
+  if (topic) data.postTopics[id] = topic; else delete data.postTopics[id];
+  await chrome.storage.local.set({ postTopics: data.postTopics });
+  applyAi();
+  renderAll();
 }
 
 // Friend or creator/business, for the whole account. "Automatic" undoes your choice.
@@ -456,11 +514,33 @@ function showAccount(author, prefix = false) {
   if (author) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// The Intently logo goes back to how the page first opens: the All tab, every
+// category, upcoming events, no search and no filters, scrolled to the top.
+function goHome() {
+  source = '';
+  activeTopic = '';
+  allTopicsShown = false;
+  showAds = false; $('showAds').checked = false;
+  $('when').dataset.v = ''; $('from').value = ''; $('to').value = '';
+  $('loc').value = '';
+  $('evWhen').dataset.v = 'upcoming';
+  $('q').value = '';
+  sugs = []; sugAt = -1;
+  $('acctSug').classList.add('hidden');
+  $('filters').classList.add('hidden');
+  $('filtersBtn').setAttribute('aria-expanded', 'false');
+  activeAccount = ''; accountPrefix = false;
+  history.replaceState(null, '', location.pathname);
+  renderAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function renderAll() {
   accounts = computeAccounts(data);
   renderOpts();
   renderSource();
   renderChips();
+  renderEvWhen();
   renderLocations();
   renderGrid();
 }
@@ -542,7 +622,63 @@ function renderAll() {
     if (b.id === 'moreTopics') { allTopicsShown = !allTopicsShown; renderChips(); return; }
     activeTopic = b.dataset.t;
     renderChips();
+    renderEvWhen();
     renderGrid();
+  });
+  $('evWhen').addEventListener('click', (e) => {
+    const b = e.target.closest('.opt');
+    if (!b) return;
+    $('evWhen').dataset.v = b.dataset.v;
+    renderEvWhen();
+    renderGrid();
+  });
+  $('home').addEventListener('click', (e) => {
+    e.preventDefault();
+    goHome();
+  });
+  // The category search box on each card.
+  $('grid').addEventListener('focusin', (e) => {
+    if (!e.target.matches('.tpick input')) return;
+    tAt = 0;
+    e.target.select();
+    renderTopicList(e.target);
+  });
+  $('grid').addEventListener('input', (e) => {
+    if (!e.target.matches('.tpick input')) return;
+    tAt = 0;
+    renderTopicList(e.target);
+  });
+  $('grid').addEventListener('focusout', (e) => {
+    if (!e.target.matches('.tpick input')) return;
+    e.target.value = e.target.dataset.topic;
+    closeTopicList(e.target);
+  });
+  $('grid').addEventListener('keydown', (e) => {
+    if (!e.target.matches('.tpick input')) return;
+    const input = e.target;
+    const choices = topicChoices(input);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (choices.length) tAt = (tAt + (e.key === 'ArrowDown' ? 1 : choices.length - 1)) % choices.length;
+      renderTopicList(input);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const c = choices[tAt];
+      if (c && c[0] !== input.dataset.topic) setPostTopic(input.closest('.tpick').dataset.post, c[0]);
+      else input.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      input.blur();
+    }
+  });
+  // mousedown, so the pick happens before the box loses focus.
+  $('grid').addEventListener('mousedown', (e) => {
+    const b = e.target.closest('.tlist .sug');
+    if (!b) return;
+    e.preventDefault();
+    const input = b.closest('.tpick').querySelector('input');
+    if (b.dataset.v === input.dataset.topic) { input.blur(); return; }
+    setPostTopic(b.closest('.tpick').dataset.post, b.dataset.v);
   });
   $('grid').addEventListener('change', async (e) => {
     const author = e.target.dataset.kind;
@@ -552,12 +688,6 @@ function renderAll() {
       renderAll();
       return;
     }
-    const id = e.target.dataset.pick;
-    if (!id) return;
-    if (e.target.value) data.postTopics[id] = e.target.value; else delete data.postTopics[id];
-    await chrome.storage.local.set({ postTopics: data.postTopics });
-    applyAi();
-    renderAll();
   });
   $('aiOn').onclick = async () => {
     const settings = { ...(await IntentgramStore.settings()), aiSort: true };
@@ -574,6 +704,7 @@ function renderAll() {
       return;
     }
     if (e.target.id === 'acctInAll') { setSource(''); return; }
+    if (e.target.id === 'allEvents') { $('evWhen').dataset.v = ''; renderEvWhen(); renderGrid(); return; }
     const del = e.target.closest('.del');
     if (del) {
       const id = del.dataset.del;
