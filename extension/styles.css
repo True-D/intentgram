@@ -147,3 +147,14 @@
   .sug span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .sug .n { margin-left:auto; flex:none; }
   .sug.on, .sug:hover { background:var(--bg); }
   .sugs .none { padding:7px 10px; }
+  a.home { color:inherit; text-decoration:none; } a.home:hover { color:var(--accent); }
+  .evwhen { margin:-2px 0 12px; } .evwhen.hidden { display:none; }
+  .tpick { position:relative; display:block; }
+  .more .menu .tpick input.tag.topic { width:100%; box-sizing:border-box; font-size:13px; padding:4px 6px; margin:0; background:var(--card); }
+  .more .menu .tpick input.tag.topic.mine { background:var(--accent); color:#fff; }
+  .more .menu .tpick input.tag.topic:focus { background:var(--card); color:var(--fg); outline:none; }
+  .tlist { display:flex; flex-direction:column; max-height:180px; overflow-y:auto; margin-top:4px; border:1px solid var(--line); border-radius:8px; padding:3px; background:var(--card); }
+  .tlist.hidden { display:none; }
+  .tlist .sug { padding:5px 8px; font-size:13px; }
+  .tlist .sug.cur { font-weight:600; color:var(--accent); }
+  .tlist .none { padding:5px 8px; }
